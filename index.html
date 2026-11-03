@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hôtel Le Wouri Prestige | Réception & Gestion Hôtelière</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Barre de Navigation Latérale -->
+    <aside class="sidebar">
+      <div class="brand-section">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h1M9 13h1M9 17h1M14 9h1M14 13h1M14 17h1"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="hotel-title">LE WOURI</span>
+          <span class="hotel-sub">Hôtel Prestige • Cameroun</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="dashboard">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          <span>Main Courante</span>
+        </button>
+
+        <button class="nav-item" data-tab="rooms">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16M2 8h18a2 2 0 0 1 2 2v10M2 17h20M6 8v9"/></svg>
+          <span>Chambres & Étages</span>
+          <span class="badge" id="availableRoomsBadge">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="reservations">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          <span>Réservations</span>
+          <span class="badge highlight" id="activeReservationsBadge">0</span>
+        </button>
+
+        <button class="nav-item" data-tab="guests">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Fichier Clients</span>
+        </button>
+
+        <button class="nav-item" data-tab="services">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 1 5 5v1h1a3 3 0 0 1 3 3v2a3 3 0 0 1-3 3h-1v1a5 5 0 0 1-5 5 5 5 0 0 1-5-5v-1H6a3 3 0 0 1-3-3v-2a3 3 0 0 1 3-3h1V7a5 5 0 0 1 5-5z"/></svg>
+          <span>Restauration & Services</span>
+        </button>
+
+        <button class="nav-item" data-tab="invoices">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span>Facturation (FCFA)</span>
+        </button>
+
+        <button class="nav-item" data-tab="reviews">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span>Livre d'Or & Avis</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="user-avatar">YL</div>
+          <div class="user-info">
+            <span class="user-name">Yvan Issoa</span>
+            <span class="user-role">Chef de Réception</span>
+          </div>
+        </div>
+        <button class="btn-text btn-reset-demo" id="btnResetDemo" title="Restaurer les données de démonstration du Cameroun">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+         
+        </button>
+      </div>
+    </aside>
+
+    <!-- Zone de Travail Principale -->
+    <main class="main-content">
+      <!-- En-tête Supérieur -->
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <div class="greeting-wrap">
+            <h1 class="page-title" id="pageTitle">Main Courante & Réception</h1>
+            <p class="page-subtitle" id="pageSubtitle">L'hospitalité camerounaise dans toute sa noblesse et sa chaleur.</p>
+          </div>
+        </div>
+
+        <div class="top-bar-right">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="globalSearchInput" placeholder="Recherche client, chambre, réservation... ('/' pour focus)" autocomplete="off">
+            <kbd class="kbd-hint">/</kbd>
+          </div>
+
+          <div class="clock-display" id="clockDisplay">
+            <span class="clock-time">--:--</span>
+            <span class="clock-date">DOUALA • CAMEROUN</span>
+          </div>
+
+          <button class="btn btn-primary" id="btnOpenNewReservation">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Nouvelle Réservation</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Vues Dynamiques -->
+      <div class="views-wrapper">
+        
+        <!-- 1. VUE TABLEAU DE BORD (MAIN COURANTE) -->
+        <section class="tab-view active" id="view-dashboard">
+          <!-- Cartes Statistiques Clés -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Taux d'Occupation</span>
+                <span class="stat-icon icon-occupancy">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg>
+                </span>
+              </div>
+              <div class="stat-value" id="statOccupancyRate">0%</div>
+              <div class="stat-detail" id="statOccupancyDetail">0 sur 0 chambres occupées</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Arrivées Prévues Aujourd'hui</span>
+                <span class="stat-icon icon-arrivals">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                </span>
+              </div>
+              <div class="stat-value" id="statTodayArrivals">0</div>
+              <div class="stat-detail">Clients attendus à la réception</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Départs du Jour</span>
+                <span class="stat-icon icon-departures">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 17l5-5-5-5M21 12H9M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></svg>
+                </span>
+              </div>
+              <div class="stat-value" id="statTodayDepartures">0</div>
+              <div class="stat-detail">Règlement des folios & clés remises</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Commandes & Services</span>
+                <span class="stat-icon icon-services">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </span>
+              </div>
+              <div class="stat-value" id="statActiveServices">0</div>
+              <div class="stat-detail">Restauration, navettes & soins</div>
+            </div>
+          </div>
+
+          <!-- Deux Colonnes : Flux du Jour & Disponibilité Rapide -->
+          <div class="dashboard-columns">
+            <div class="dashboard-panel">
+              <div class="panel-header">
+                <div>
+                  <h2 class="panel-title">Mouvements du Jour (Arrivées & Départs)</h2>
+                  <p class="panel-desc">Enregistrement rapide des résidents et remise des clés</p>
+                </div>
+                <button class="btn btn-sm btn-outline" onclick="app.switchTab('reservations')">Toutes les Réservations</button>
+              </div>
+
+              <div class="timeline-list" id="todayScheduleList">
+                <!-- Rempli dynamiquement -->
+              </div>
+            </div>
+
+            <div class="dashboard-panel">
+              <div class="panel-header">
+                <div>
+                  <h2 class="panel-title">État d'Entretien du Parc</h2>
+                  <p class="panel-desc">Disponibilité immédiate des 3 étages</p>
+                </div>
+                <button class="btn btn-sm btn-outline" onclick="app.switchTab('rooms')">Plan des Étages</button>
+              </div>
+
+              <div class="room-pill-matrix" id="roomQuickMatrix">
+                <!-- Rempli dynamiquement -->
+              </div>
+
+              <div class="guest-quotes-banner">
+                <div class="quote-icon">❝</div>
+                <div class="quote-content" id="dashboardRandomReview">
+                  <p class="quote-text">"L'accueil à la camerounaise dès l'arrivée, le Ndolè au restaurant et la vue sur le fleuve Wouri."</p>
+                  <span class="quote-author">— Suzanne Mballa • Résidence Bonanjo</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. VUE CHAMBRES & ÉTAGES -->
+        <section class="tab-view" id="view-rooms">
+          <div class="view-header-bar">
+            <div class="filter-group">
+              <span class="filter-label">Étage :</span>
+              <div class="pill-filters" id="floorFilters">
+                <button class="pill-btn active" data-floor="all">Tous les Étages</button>
+                <button class="pill-btn" data-floor="1">1er Étage (Côté Jardin)</button>
+                <button class="pill-btn" data-floor="2">2ème Étage (Terrasse)</button>
+                <button class="pill-btn" data-floor="3">3ème Étage (Suites Wouri)</button>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <span class="filter-label">Statut :</span>
+              <div class="pill-filters" id="statusFilters">
+                <button class="pill-btn active" data-status="all">Tous</button>
+                <button class="pill-btn status-btn available" data-status="Disponible">Disponible</button>
+                <button class="pill-btn status-btn occupied" data-status="Occupée">Occupée</button>
+                <button class="pill-btn status-btn cleaning" data-status="Nettoyage">Nettoyage</button>
+                <button class="pill-btn status-btn maintenance" data-status="Maintenance">Maintenance</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="rooms-grid" id="roomsGrid">
+            <!-- Cartes des chambres -->
+          </div>
+        </section>
+
+        <!-- 3. VUE RÉSERVATIONS -->
+        <section class="tab-view" id="view-reservations">
+          <div class="view-header-bar">
+            <div class="tab-subnav" id="reservationStatusTabs">
+              <button class="subnav-btn active" data-status="all">Toutes les Réservations</button>
+              <button class="subnav-btn" data-status="confirmed">Confirmées</button>
+              <button class="subnav-btn" data-status="checked_in">En séjour</button>
+              <button class="subnav-btn" data-status="checked_out">Séjours clôturés</button>
+              <button class="subnav-btn" data-status="cancelled">Annulées</button>
+            </div>
+
+            <div class="actions-group">
+              <button class="btn btn-primary" onclick="app.openNewReservationModal()">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Réserver un Séjour
+              </button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table" id="reservationsTable">
+              <thead>
+                <tr>
+                  <th>N° Dossier</th>
+                  <th>Client</th>
+                  <th>Dates (Arrivée &rarr; Départ)</th>
+                  <th>Chambre & Catégorie</th>
+                  <th>Personnes</th>
+                  <th>Statut</th>
+                  <th>Montant Estimé</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="reservationsTableBody">
+                <!-- Lignes réservations -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 4. VUE FICHIER CLIENTS -->
+        <section class="tab-view" id="view-guests">
+          <div class="view-header-bar">
+            <div class="search-filter-wrap">
+              <input type="text" class="form-input form-input-sm" id="guestSearchInput" placeholder="Filtrer par nom, téléphone (+237)...">
+            </div>
+            <button class="btn btn-primary" id="btnOpenNewGuest">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Enregistrer un Client
+            </button>
+          </div>
+
+          <div class="guests-grid" id="guestsGrid">
+            <!-- Cartes clients -->
+          </div>
+        </section>
+
+        <!-- 5. VUE RESTAURATION & SERVICES -->
+        <section class="tab-view" id="view-services">
+          <div class="view-header-bar">
+            <div>
+              <h2 class="section-title">Catalogue des Prestations & Gastronomie</h2>
+              <p class="section-desc">Saveurs camerounaises, navettes aéroport, soins bien-être et salons d'affaires</p>
+            </div>
+            <button class="btn btn-primary" id="btnOpenBookService">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Commander pour un Résident
+            </button>
+          </div>
+
+          <div class="services-grid" id="servicesGrid">
+            <!-- Cartes de services -->
+          </div>
+
+          <div class="service-schedule-section">
+            <h3 class="subsection-title">Prestations Récemment Commandées</h3>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>N° Commande</th>
+                    <th>Prestation</th>
+                    <th>Client / Dossier</th>
+                    <th>Date & Heure</th>
+                    <th>Personnes</th>
+                    <th>Tarif (FCFA)</th>
+                    <th>Statut</th>
+                  </tr>
+                </thead>
+                <tbody id="serviceBookingsTableBody">
+                  <!-- Lignes de services -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. VUE FACTURATION & RÈGLEMENTS -->
+        <section class="tab-view" id="view-invoices">
+          <div class="view-header-bar">
+            <div class="tab-subnav" id="invoiceStatusTabs">
+              <button class="subnav-btn active" data-status="all">Toutes les Factures</button>
+              <button class="subnav-btn" data-status="issued">À Régler</button>
+              <button class="subnav-btn" data-status="paid">Soldées / Encaissées</button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table" id="invoicesTable">
+              <thead>
+                <tr>
+                  <th>N° Facture</th>
+                  <th>Dossier</th>
+                  <th>Client</th>
+                  <th>Date d'Émission</th>
+                  <th>Statut</th>
+                  <th>Montant TTC (FCFA)</th>
+                  <th>Paiements Reçus</th>
+                  <th class="text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="invoicesTableBody">
+                <!-- Lignes factures -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 7. VUE LIVRE D'OR / AVIS -->
+        <section class="tab-view" id="view-reviews">
+          <div class="reviews-overview-card">
+            <div class="rating-highlight">
+              <div class="huge-rating" id="avgRatingDisplay">4.9</div>
+              <div class="stars-row" id="avgStarsRow">xxxxxx</div>
+              <div class="rating-sub" id="totalReviewsCount">Sur 5 avis clients vérifiés au Cameroun</div>
+            </div>
+            <div class="rating-bars" id="ratingBars">
+              <!-- Barres de répartition -->
+            </div>
+            <div class="review-action">
+              <button class="btn btn-outline" id="btnOpenAddReview">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                Consigner un Avis Client
+              </button>
+            </div>
+          </div>
+
+          <div class="reviews-masonry" id="reviewsList">
+            <!-- Cartes des avis -->
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ==================== MODALES ==================== -->
+
+  <!-- Modale 1 : Nouvelle Réservation -->
+  <div class="modal-overlay" id="modalNewReservation">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Enregistrer une Réservation</h3>
+          <p class="modal-subtitle">Hôtel Le Wouri Prestige • Douala Bonanjo</p>
+        </div>
+        <button class="btn-close" onclick="app.closeModal('modalNewReservation')">&times;</button>
+      </div>
+      <form id="formNewReservation" onsubmit="app.handleCreateReservation(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="resGuestSelect">Sélectionner le Client Enregistré *</label>
+            <div class="row-flex">
+              <select class="form-input" id="resGuestSelect" required>
+                <!-- Rempli dynamiquement -->
+              </select>
+              <button type="button" class="btn btn-sm btn-outline" onclick="app.openNewGuestModal(true)">+ Nouveau Client</button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label class="form-label" for="resCheckIn">Date d'Arrivée (Check-in) *</label>
+              <input type="date" class="form-input" id="resCheckIn" required>
+            </div>
+            <div class="form-group col-6">
+              <label class="form-label" for="resCheckOut">Date de Départ (Check-out) *</label>
+              <input type="date" class="form-input" id="resCheckOut" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label class="form-label" for="resRoomSelect">Attribution Chambre *</label>
+              <select class="form-input" id="resRoomSelect" required>
+                <!-- Rempli dynamiquement -->
+              </select>
+            </div>
+            <div class="form-group col-6">
+              <label class="form-label" for="resGuestCount">Nombre de Personnes *</label>
+              <input type="number" class="form-input" id="resGuestCount" min="1" max="5" value="1" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="resSpecialNotes">Instructions d'Accueil & Besoins Particuliers</label>
+            <textarea class="form-input" id="resSpecialNotes" rows="2" placeholder="Ex: Arrivée vol Camair-Co tardive, facture proforma société, lit bébé..."></textarea>
+          </div>
+
+          <!-- Estimation tarifaire en FCFA -->
+          <div class="pricing-summary-box">
+            <div class="summary-line">
+              <span>Durée du séjour :</span>
+              <strong id="calcNights">0 nuitée</strong>
+            </div>
+            <div class="summary-line">
+              <span>Tarif par nuitée :</span>
+              <strong id="calcRate">0 FCFA</strong>
+            </div>
+            <div class="summary-line highlight">
+              <span>Sous-total Hébergement (Hors TVA) :</span>
+              <strong id="calcTotal">0 FCFA</strong>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="app.closeModal('modalNewReservation')">Annuler</button>
+          <button type="submit" class="btn btn-primary">Valider la Réservation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modale 2 : Nouveau Client -->
+  <div class="modal-overlay" id="modalNewGuest">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Fiche de Renseignement Client</h3>
+          <p class="modal-subtitle">Inscription au fichier permanent de l'hôtel</p>
+        </div>
+        <button class="btn-close" onclick="app.closeModal('modalNewGuest')">&times;</button>
+      </div>
+      <form id="formNewGuest" onsubmit="app.handleCreateGuest(event)">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label class="form-label" for="guestFirstName">Prénom(s) *</label>
+              <input type="text" class="form-input" id="guestFirstName" placeholder="Ex: Jean-Paul" required>
+            </div>
+            <div class="form-group col-6">
+              <label class="form-label" for="guestLastName">Nom de Famille *</label>
+              <input type="text" class="form-input" id="guestLastName" placeholder="Ex: Mbarga" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label class="form-label" for="guestPhone">Numéro de Téléphone (+237...) *</label>
+              <input type="tel" class="form-input" id="guestPhone" placeholder="+237 699 00 00 00" required>
+            </div>
+            <div class="form-group col-6">
+              <label class="form-label" for="guestEmail">Adresse Email *</label>
+              <input type="email" class="form-input" id="guestEmail" placeholder="client@domaine.cm" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="guestPreferences">Préférences & Remarques (VIP, Société, Régime...)</label>
+            <input type="text" class="form-input" id="guestPreferences" placeholder="Ex: Cadre en mission, préfère étage élevé, eau tempérée">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="app.closeModal('modalNewGuest')">Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer la Fiche Client</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modale 3 : Détail & Changement de Statut Chambre -->
+  <div class="modal-overlay" id="modalRoomDetail">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="roomDetailTitle">Chambre 101</h3>
+          <p class="modal-subtitle" id="roomDetailSubtitle">Confort Côté Jardin • 1er Étage</p>
+        </div>
+        <button class="btn-close" onclick="app.closeModal('modalRoomDetail')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="room-inspect-meta">
+          <div class="inspect-item">
+            <span class="label">Tarif par Nuitée</span>
+            <span class="val" id="roomDetailPrice">0 FCFA</span>
+          </div>
+          <div class="inspect-item">
+            <span class="label">Capacité Max</span>
+            <span class="val" id="roomDetailCapacity">2 Personnes</span>
+          </div>
+          <div class="inspect-item">
+            <span class="label">Statut Actuel</span>
+            <span class="val status-pill" id="roomDetailStatusPill">Disponible</span>
+          </div>
+        </div>
+
+        <div class="form-group mt-3">
+          <label class="form-label">Gouvernance & État d'Entretien (Service d'Étages)</label>
+          <div class="status-change-buttons">
+            <button type="button" class="btn-status-option status-avail" onclick="app.updateRoomStatus('Disponible')">Mettre Disponible</button>
+            <button type="button" class="btn-status-option status-occ" onclick="app.updateRoomStatus('Occupée')">Marquer Occupée</button>
+            <button type="button" class="btn-status-option status-clean" onclick="app.updateRoomStatus('Nettoyage')">Envoyer au Nettoyage</button>
+            <button type="button" class="btn-status-option status-maint" onclick="app.updateRoomStatus('Maintenance')">Maintenance Technique</button>
+          </div>
+        </div>
+
+        <div class="amenities-inspect-block mt-3">
+          <label class="form-label">Équipements & Conforts de la Chambre</label>
+          <div class="amenities-tags" id="roomDetailAmenities">
+            <!-- Badges équipements -->
+          </div>
+        </div>
+
+        <div class="active-guest-block mt-3" id="roomDetailOccupantBlock">
+          <!-- Occupant actuel -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="app.closeModal('modalRoomDetail')">Fermer</button>
+        <button type="button" class="btn btn-primary" id="btnBookThisRoom" onclick="app.bookSpecificRoom()">Réserver Cette Chambre</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale 4 : Commander une Prestation / Service -->
+  <div class="modal-overlay" id="modalBookService">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Commander une Prestation</h3>
+          <p class="modal-subtitle">Ajout immédiat sur la note de chambre du résident</p>
+        </div>
+        <button class="btn-close" onclick="app.closeModal('modalBookService')">&times;</button>
+      </div>
+      <form id="formBookService" onsubmit="app.handleCreateServiceBooking(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="serviceSelect">Prestation / Gastronomie *</label>
+            <select class="form-input" id="serviceSelect" required onchange="app.updateServicePricePreview()">
+              <!-- Options dynamiques -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="serviceReservationSelect">Attribuer au Résident / Séjour *</label>
+            <select class="form-input" id="serviceReservationSelect" required>
+              <!-- Séjours actifs -->
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label class="form-label" for="serviceDate">Date Prévue *</label>
+              <input type="date" class="form-input" id="serviceDate" required>
+            </div>
+            <div class="form-group col-6">
+              <label class="form-label" for="serviceTime">Heure Prévue *</label>
+              <input type="time" class="form-input" id="serviceTime" value="19:30" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label class="form-label" for="serviceGuests">Nombre de Personnes *</label>
+              <input type="number" class="form-input" id="serviceGuests" min="1" max="10" value="1" required>
+            </div>
+            <div class="form-group col-6">
+              <label class="form-label">Tarif Unitaire (FCFA)</label>
+              <div class="service-preview-price" id="servicePricePreview">0 FCFA</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="app.closeModal('modalBookService')">Annuler</button>
+          <button type="submit" class="btn btn-primary">Valider la Commande</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modale 5 : Facture / Folio Imprimable (FCFA) -->
+  <div class="modal-overlay" id="modalInvoice">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Note d'Hôtel & Folio Officiel</h3>
+          <p class="modal-subtitle">Règlement en FCFA • Orange Money, MTN MoMo, Espèces, Carte</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-sm btn-outline" onclick="window.print()">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Imprimer la Facture
+          </button>
+          <button class="btn-close" onclick="app.closeModal('modalInvoice')">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body printable-invoice-area" id="invoicePrintArea">
+        <!-- Rendu dynamique -->
+      </div>
+      <div class="modal-footer" id="invoiceModalFooter">
+        <!-- Boutons d'encaissement -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale 6 : Inscrire un Avis Client -->
+  <div class="modal-overlay" id="modalAddReview">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Consigner un Avis au Livre d'Or</h3>
+          <p class="modal-subtitle">Appréciation de l'hospitalité et de la qualité de service</p>
+        </div>
+        <button class="btn-close" onclick="app.closeModal('modalAddReview')">&times;</button>
+      </div>
+      <form id="formAddReview" onsubmit="app.handleCreateReview(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="reviewReservationSelect">Séjour Concerné *</label>
+            <select class="form-input" id="reviewReservationSelect" required>
+              <!-- Séjours -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Note Attribuée *</label>
+            <div class="star-rating-select" id="starRatingSelect">
+              <span class="star-pick" data-val="1">★</span>
+              <span class="star-pick" data-val="2">★</span>
+              <span class="star-pick" data-val="3">★</span>
+              <span class="star-pick" data-val="4">★</span>
+              <span class="star-pick active" data-val="5">★</span>
+              <input type="hidden" id="reviewRatingVal" value="5">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reviewComment">Témoignage du Client *</label>
+            <textarea class="form-input" id="reviewComment" rows="3" placeholder="Partagez l'expérience vécue par le résident au sein de notre établissement..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="app.closeModal('modalAddReview')">Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer au Livre d'Or</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+ 
+  <script src="app.js"></script>
+</body>
+</html>
