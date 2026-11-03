@@ -1,605 +1,1714 @@
-(function(){
-  const KEY='aura_grand_v2';
-  const TAX=0.1;
-  const $=id=>document.getElementById(id);
-  const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
-  const pad=n=>String(n).padStart(2,'0');
-  const iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  const parse=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
-  const today=()=>iso(new Date());
-  const plus=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
-  const nights=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
-  const dShort=s=>parse(s).toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  const dLong=s=>parse(s).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-  const money=n=>'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  const ic=n=>`<iconify-icon icon="lucide:${n}"></iconify-icon>`;
-  const label=s=>String(s).replace(/_/g,' ');
-  const pill=s=>`<span class="pill s-${String(s).toLowerCase()}">${esc(label(s))}</span>`;
-  const overlaps=(a,b,c,d)=>a<d&&c<b;
-  const plural=(n,w)=>`${n} ${w}${n===1?'':'s'}`;
+(function () {
+  'use strict';
 
-  const TABS=[
-    ['dashboard','layout-dashboard','Front Desk','Front desk overview','Welcoming guests with timeless care.'],
-    ['rooms','bed-double','Rooms','Rooms & floors','Readiness and housekeeping at a glance.'],
-    ['reservations','calendar-check','Reservations','Reservations','Arrivals, stays and departures.'],
-    ['guests','users','Guests','Guest directory','Know our guests and their preferences.'],
-    ['services','sparkles','Spa & Services','Spa & experiences','Treatments, dining and personal services.'],
-    ['invoices','receipt','Billing','Billing & invoices','Folios, payments and settled accounts.'],
-    ['reviews','star','Reviews','Guest reviews','What guests say about their stay.']
-  ];
+  const STORAGE_KEY = 'le_wouri_hotel_cameroun_v2';
 
-  function seed(){
-    const t=today();
-    const R=(n,f,type,rate,cap,status,am)=>({id:'r'+n,number:String(n),floor:f,type,rate,capacity:cap,status,amenities:am});
-    const rooms=[
-      R(101,1,'Deluxe Garden Room',140,2,'Available',['King bed','Garden view','Rain shower']),
-      R(102,1,'Deluxe Garden Room',140,2,'Occupied',['King bed','Garden view','Rain shower']),
-      R(103,1,'Garden Family Room',185,4,'Available',['2 queen beds','Patio','Kitchenette']),
-      R(104,1,'Garden Family Room',185,4,'Cleaning',['2 queen beds','Patio','Kitchenette']),
-      R(105,1,'Deluxe Garden Room',140,2,'Available',['King bed','Garden view','Rain shower']),
-      R(106,1,'Garden Suite',210,3,'Available',['King bed','Sitting area','Soaking tub']),
-      R(201,2,'Terrace Room',165,2,'Available',['King bed','Private terrace','Espresso bar']),
-      R(202,2,'Terrace Room',165,2,'Available',['King bed','Private terrace','Espresso bar']),
-      R(203,2,'Terrace Deluxe',195,3,'Available',['King bed','Large terrace','Soaking tub']),
-      R(204,2,'Terrace Deluxe',195,3,'Available',['King bed','Large terrace','Soaking tub']),
-      R(205,2,'Terrace Room',165,2,'Maintenance',['King bed','Private terrace','Espresso bar']),
-      R(206,2,'Terrace Family Suite',240,5,'Available',['2 bedrooms','Terrace','Living room']),
-      R(301,3,'Executive Suite',320,3,'Occupied',['King bed','Balcony','Lounge','Butler']),
-      R(302,3,'Executive Suite',320,3,'Available',['King bed','Balcony','Lounge','Butler']),
-      R(303,3,'Skyline Suite',420,4,'Available',['Panoramic view','Jacuzzi','Dining area','Butler']),
-      R(304,3,'Penthouse Suite',650,5,'Available',['Rooftop terrace','Private chef','Jacuzzi','Butler'])
-    ];
-    const G=(id,f,l,email,phone,notes,vip)=>({id,firstName:f,lastName:l,email,phone,notes,vip});
-    const guests=[
-      G('g1','Evelyn','Vance','evelyn.vance@example.com','+1 (555) 349-8291','Prefers quiet rooms. Loves evening herbal tea.',true),
-      G('g2','Marcus','Okafor','m.okafor@example.com','+234 802 555 0147','Early check-in requested. Allergic to feathers.',false),
-      G('g3','Sofia','Ramirez','sofia.ramirez@example.com','+34 612 555 019','Celebrating anniversary. Sparkling water lover.',true),
-      G('g4','Liam','Chen','liam.chen@example.com','+1 (555) 201-4478','Business traveler, needs late checkout.',false),
-      G('g5','Amara','Nkemelu','amara.n@example.com','+237 677 555 210','Vegetarian. Interested in spa packages.',false),
-      G('g6','Henrik','Larsson','henrik.l@example.com','+46 70 555 12 34','High floor preference.',false)
-    ];
-    const V=(id,guestId,roomId,a,b,g,status,notes)=>({id,guestId,roomId,checkIn:a,checkOut:b,guests:g,status,notes});
-    const reservations=[
-      V('RES-1001','g1','r301',plus(t,-2),plus(t,1),2,'checked_in','Anniversary stay, quiet room.'),
-      V('RES-1002','g2','r203',t,plus(t,3),2,'confirmed','Early check-in if possible.'),
-      V('RES-1003','g4','r102',plus(t,-1),t,1,'checked_in','Late checkout requested.'),
-      V('RES-1004','g3','r304',plus(t,2),plus(t,5),2,'confirmed','Champagne on arrival.'),
-      V('RES-1005','g5','r104',plus(t,-6),plus(t,-3),3,'checked_out',''),
-      V('RES-1006','g6','r202',plus(t,-10),plus(t,-7),2,'checked_out',''),
-      V('RES-1007','g2','r201',plus(t,4),plus(t,6),2,'cancelled','Cancelled by guest.'),
-      V('RES-1008','g5','r105',t,plus(t,2),2,'confirmed','')
-    ];
-    const S=(id,name,desc,price,duration)=>({id,name,desc,price,duration});
-    const services=[
-      S('s1','Signature Aura Massage','60-minute full-body massage with warm botanical oils.',120,'60 min'),
-      S('s2','Thermal Spa Circuit','Sauna, steam room and hydrotherapy pools.',55,'2 hrs'),
-      S('s3',"Chef's Tasting Dinner",'Seven-course seasonal menu with wine pairing.',160,'2.5 hrs'),
-      S('s4','Sunrise Garden Yoga','Guided yoga session in the walled garden.',30,'45 min'),
-      S('s5','Private Airport Transfer','Chauffeured sedan to or from the airport.',85,'1 hr'),
-      S('s6','Couples Aromatherapy Ritual','Side-by-side treatments with a champagne finish.',260,'90 min')
-    ];
-    const serviceBookings=[
-      {id:'SB-2001',serviceId:'s1',reservationId:'RES-1001',date:t,time:'15:00',guests:1,price:120,status:'confirmed'},
-      {id:'SB-2002',serviceId:'s3',reservationId:'RES-1001',date:t,time:'19:30',guests:2,price:320,status:'confirmed'},
-      {id:'SB-2003',serviceId:'s5',reservationId:'RES-1002',date:t,time:'11:00',guests:2,price:170,status:'confirmed'},
-      {id:'SB-2004',serviceId:'s2',reservationId:'RES-1005',date:plus(t,-4),time:'16:00',guests:3,price:165,status:'completed'}
-    ];
-    const invoices=[
-      {id:'INV-3001',reservationId:'RES-1005',issueDate:plus(t,-3),status:'paid',payments:[]},
-      {id:'INV-3002',reservationId:'RES-1006',issueDate:plus(t,-7),status:'issued',payments:[]}
-    ];
-    const RV=(id,reservationId,guestName,roomNumber,rating,comment,date)=>({id,reservationId,guestName,roomNumber,rating,comment,date});
-    const reviews=[
-      RV('rv1','RES-1005','Amara Nkemelu','104',5,'The garden family room felt like a private cottage. The spa circuit was the highlight for the whole family.',plus(t,-3)),
-      RV('rv2','RES-1006','Henrik Larsson','202',5,'Quiet terrace and a wonderful breakfast. Staff remembered my preferences from the first morning.',plus(t,-7)),
-      RV('rv3',null,'Dr. Evelyn Vance','301',5,'The quiet balcony room and evening tea made our anniversary unforgettable.',plus(t,-30)),
-      RV('rv4',null,'Daniel Moreau','206',5,'Impeccable service, and the family suite was spacious and thoughtfully designed.',plus(t,-45)),
-      RV('rv5',null,'Priya Natarajan','203',4,'Lovely stay. Check-in was a little slow but the massage more than made up for it.',plus(t,-60)),
-      RV('rv6',null,'Tobias Weber','303',5,'The skyline suite views at night are something special. We will be back.',plus(t,-80))
-    ];
-    return {rooms,guests,reservations,services,serviceBookings,invoices,reviews,counters:{res:1008,guest:6,sb:2004,inv:3002,rev:6}};
+  function formatFCFA(amount) {
+    if (isNaN(amount) || amount === null) return '0 FCFA';
+    const rounded = Math.round(amount);
+    return rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' FCFA';
   }
 
-  let db;
-  const ui={tab:'dashboard',floor:'all',rstatus:'all',resf:'all',invf:'all',q:'',gq:'',room:null,fromRes:false,rating:5};
-
-  function fixPayments(){
-    db.invoices.forEach(i=>{
-      if(i.status==='paid'&&!i.payments.length) i.payments.push({amount:folio(i.reservationId).total,method:'Credit Card',date:i.issueDate});
-    });
-  }
-  function load(){
-    try{const raw=localStorage.getItem(KEY);if(raw){db=JSON.parse(raw);return}}catch(e){}
-    db=seed();fixPayments();save();
-  }
-  function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}}
-
-  const room=id=>db.rooms.find(r=>r.id===id);
-  const guest=id=>db.guests.find(g=>g.id===id);
-  const res=id=>db.reservations.find(r=>r.id===id);
-  const svc=id=>db.services.find(s=>s.id===id);
-  const gName=g=>g?`${g.firstName} ${g.lastName}`:'Unknown guest';
-  const initials=g=>((g.firstName[0]||'')+(g.lastName[0]||'')).toUpperCase();
-  const active=r=>r.status==='confirmed'||r.status==='checked_in';
-  const paid=i=>i.payments.reduce((s,p)=>s+p.amount,0);
-
-  function folio(resId){
-    const r=res(resId);
-    if(!r) return {lines:[],subtotal:0,tax:0,total:0};
-    const rm=room(r.roomId);
-    const n=Math.max(1,nights(r.checkIn,r.checkOut));
-    const lines=[{desc:`Room ${rm.number} — ${rm.type}`,detail:`${plural(n,'night')} × ${money(rm.rate)}`,amount:n*rm.rate}];
-    db.serviceBookings.filter(b=>b.reservationId===resId&&b.status!=='cancelled').forEach(b=>{
-      const s=svc(b.serviceId);
-      lines.push({desc:s?s.name:'Service',detail:`${dShort(b.date)} · ${plural(b.guests,'guest')}`,amount:b.price});
-    });
-    const subtotal=lines.reduce((s,l)=>s+l.amount,0);
-    const tax=Math.round(subtotal*TAX*100)/100;
-    return {lines,subtotal,tax,total:subtotal+tax};
-  }
-  function ensureInvoice(resId){
-    let inv=db.invoices.find(i=>i.reservationId===resId);
-    if(!inv){
-      db.counters.inv+=1;
-      inv={id:`INV-${db.counters.inv}`,reservationId:resId,issueDate:today(),status:'draft',payments:[]};
-      db.invoices.push(inv);save();
-    }
-    return inv;
-  }
-  function isFree(roomId,a,b){
-    return !db.reservations.some(r=>r.roomId===roomId&&active(r)&&overlaps(a,b,r.checkIn,r.checkOut));
+  function getRelativeDate(offsetDays) {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    return d.toISOString().split('T')[0];
   }
 
-  function toast(msg,type='success'){
-    const el=document.createElement('div');
-    el.className='toast '+type;el.textContent=msg;
-    $('toasts').appendChild(el);
-    setTimeout(()=>{el.style.transition='.3s';el.style.opacity='0';setTimeout(()=>el.remove(),320)},3200);
+  function getRelativeDateTime(offsetDays) {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    return d.toISOString().replace('T', ' ').substring(0, 19);
   }
 
-  function modal(title,sub,body,foot,opts={}){
-    const o=$('overlay');
-    o.innerHTML=`<form class="modal ${opts.wide?'wide':''}" ${opts.form?`data-form="${opts.form}"`:''} novalidate>
-      <div class="mh"><div><h3>${title}</h3><p>${sub}</p></div>
-        <div class="x">${opts.print?`<button type="button" class="btn sm ghost no-print" data-a="print">${ic('printer')}Print</button>`:''}
-        <button type="button" class="btn icon sm no-print" data-a="close" aria-label="Close">${ic('x')}</button></div></div>
-      <div class="mb">${body}</div>
-      <div class="mf no-print">${foot}</div></form>`;
-    o.classList.add('open');
-  }
-  function closeModal(){$('overlay').classList.remove('open');$('overlay').innerHTML=''}
+  const DEFAULT_DATA = {
+    clients: [
+      {
+        client_id: 1,
+        first_name: 'Pr. Jean-Paul',
+        last_name: 'Mbarga',
+        phone: '+237 699 45 12 80',
+        email: 'jp.mbarga@univ-yaounde1.cm',
+        vip_tier: 'Or',
+        notes: 'Doyen universitaire. Chambre calme requise pour rédaction. Climatisation silencieuse.'
+      },
+      {
+        client_id: 2,
+        first_name: 'Aïssatou',
+        last_name: 'Bello',
+        phone: '+237 677 30 19 84',
+        email: 'aissatou.bello@afrilandfirstbank.com',
+        vip_tier: 'Platine',
+        notes: 'Cadre bancaire en mission. Arrivée tardive par le vol Camair-Co de 18h30. Facture proforma société.'
+      },
+      {
+        client_id: 3,
+        first_name: 'Suzanne',
+        last_name: 'Mballa',
+        phone: '+237 675 11 44 22',
+        email: 'suzanne.mballa@orange.cm',
+        vip_tier: 'Or',
+        notes: 'Séjour anniversaire de mariage. Corbeille de fruits exotiques et vin blanc frais en chambre.'
+      },
+      {
+        client_id: 4,
+        first_name: 'Christian',
+        last_name: 'Tchouta',
+        phone: '+237 694 22 88 10',
+        email: 'christian.tchouta@logistics-douala.com',
+        vip_tier: 'Standard',
+        notes: 'Transit portuaire Bonanjo. Réveil demandé à 06h00 pour départ chantier.'
+      },
+      {
+        client_id: 5,
+        first_name: 'Nadine',
+        last_name: 'Essomba',
+        phone: '+237 691 55 77 33',
+        email: 'nadine.essomba@mincommerce.gov.cm',
+        vip_tier: 'Platine',
+        notes: 'Délégation ministérielle. Salon de travail nécessaire, thé kinkeliba au réveil.'
+      },
+      {
+        client_id: 6,
+        first_name: 'Ibrahim',
+        last_name: 'Njoya',
+        phone: '+237 670 14 99 00',
+        email: 'i.njoya@arts-foumban.cm',
+        vip_tier: 'Standard',
+        notes: 'Artisan d\'art en exposition à l\'Institut Français.'
+      }
+    ],
 
-  function renderBadges(){
-    $$('.count[data-count]').forEach(c=>{
-      c.textContent=c.dataset.count==='rooms'?db.rooms.filter(r=>r.status==='Available').length:db.reservations.filter(active).length;
-    });
-  }
+    room_types: [
+      { room_type_id: 1, name: 'Chambre Confort Côté Jardin', description: 'Lit King, grand balcon privatif, vue sur le jardin tropical et palmiers.' },
+      { room_type_id: 2, name: 'Suite Junior Exécutive', description: 'Salon privé de travail, bureau en bois massif d\'Iroko, douche à l\'italienne en marbre.' },
+      { room_type_id: 3, name: 'Suite Prestige Wouri', description: 'Vue panoramique sur le fleuve Wouri, jacuzzi privatif, salon d\'honneur et terrasse.' },
+      { room_type_id: 4, name: 'Suite Familiale Baobab', description: 'Deux chambres communicantes, grand salon, idéale pour séjours familiaux ou de prestige.' }
+    ],
 
-  function renderDashboard(){
-    const t=today();
-    const occ=db.rooms.filter(r=>r.status==='Occupied').length;
-    $('stOcc').textContent=db.rooms.length?Math.round(occ/db.rooms.length*100)+'%':'0%';
-    $('stOccD').textContent=`${occ} of ${db.rooms.length} rooms occupied`;
-    const arr=db.reservations.filter(r=>r.checkIn===t&&active(r));
-    const dep=db.reservations.filter(r=>r.checkOut===t&&(r.status==='checked_in'||r.status==='checked_out'));
-    $('stIn').textContent=arr.length;
-    $('stOut').textContent=dep.length;
-    $('stSvc').textContent=db.serviceBookings.filter(b=>b.date===t&&b.status!=='cancelled').length;
+    room_statuses: [
+      { room_status_id: 1, name: 'Disponible' },
+      { room_status_id: 2, name: 'Occupée' },
+      { room_status_id: 3, name: 'Nettoyage' },
+      { room_status_id: 4, name: 'Maintenance' }
+    ],
 
-    const items=[...arr.map(r=>({type:'in',r,time:'14:00'})),...dep.map(r=>({type:'out',r,time:'11:00'}))].sort((a,b)=>a.time.localeCompare(b.time));
-    $('schedule').innerHTML=items.length?items.map(({type,r,time})=>{
-      const g=guest(r.guestId),rm=room(r.roomId);
-      let act;
-      if(type==='in') act=r.status==='confirmed'?`<button class="btn sm primary" data-a="checkIn" data-id="${r.id}">Check in</button>`:pill('checked_in');
-      else act=r.status==='checked_in'?`<button class="btn sm ghost" data-a="checkOut" data-id="${r.id}">Check out</button>`:pill('checked_out');
-      return `<div class="row">
-        <div class="when ${type}"><small>${type==='in'?'Arrive':'Depart'}</small><span>${time}</span></div>
-        <div class="grow"><b>${esc(gName(g))}${g&&g.vip?'<span class="vip">VIP</span>':''}</b>
-          <span class="muted">Room ${esc(rm.number)} · ${esc(rm.type)} · ${plural(r.guests,'guest')}</span></div>
-        <div>${act}</div></div>`;
-    }).join(''):'<div class="empty">Nothing scheduled for today.</div>';
+    amenities: [
+      { amenity_id: 1, name: 'Fibre Optique Haut Débit' },
+      { amenity_id: 2, name: 'Lit King Size Orthopédique' },
+      { amenity_id: 3, name: 'Climatisation Inverter Silencieuse' },
+      { amenity_id: 4, name: 'Groupe Électrogène 24h/24 & Eau filtrée' },
+      { amenity_id: 5, name: 'Smart TV Canal+ & Bouquet Sport' },
+      { amenity_id: 6, name: 'Cafetière Espresso & Thés Locaux' },
+      { amenity_id: 7, name: 'Jacuzzi & Baignoire Profonde' },
+      { amenity_id: 8, name: 'Mini-Bar & Jus Frais Naturels' }
+    ],
 
-    $('chips').innerHTML=db.rooms.map(r=>`<button class="chip ${r.status.toLowerCase()}" title="${esc(r.type)} — ${r.status}" data-a="room" data-id="${r.id}">${esc(r.number)}<i></i></button>`).join('');
+    room_amenities: [
+      { room_id: 101, amenity_id: 1 }, { room_id: 101, amenity_id: 2 }, { room_id: 101, amenity_id: 3 }, { room_id: 101, amenity_id: 4 }, { room_id: 101, amenity_id: 5 },
+      { room_id: 102, amenity_id: 1 }, { room_id: 102, amenity_id: 2 }, { room_id: 102, amenity_id: 3 }, { room_id: 102, amenity_id: 4 }, { room_id: 102, amenity_id: 6 },
+      { room_id: 103, amenity_id: 1 }, { room_id: 103, amenity_id: 2 }, { room_id: 103, amenity_id: 3 }, { room_id: 103, amenity_id: 4 }, { room_id: 103, amenity_id: 8 },
+      { room_id: 201, amenity_id: 1 }, { room_id: 201, amenity_id: 2 }, { room_id: 201, amenity_id: 3 }, { room_id: 201, amenity_id: 4 }, { room_id: 201, amenity_id: 5 }, { room_id: 201, amenity_id: 6 },
+      { room_id: 202, amenity_id: 1 }, { room_id: 202, amenity_id: 2 }, { room_id: 202, amenity_id: 3 }, { room_id: 202, amenity_id: 4 },
+      { room_id: 203, amenity_id: 1 }, { room_id: 203, amenity_id: 2 }, { room_id: 203, amenity_id: 3 }, { room_id: 203, amenity_id: 4 }, { room_id: 203, amenity_id: 6 }, { room_id: 203, amenity_id: 8 },
+      { room_id: 301, amenity_id: 1 }, { room_id: 301, amenity_id: 2 }, { room_id: 301, amenity_id: 3 }, { room_id: 301, amenity_id: 4 }, { room_id: 301, amenity_id: 5 }, { room_id: 301, amenity_id: 6 }, { room_id: 301, amenity_id: 7 }, { room_id: 301, amenity_id: 8 },
+      { room_id: 302, amenity_id: 1 }, { room_id: 302, amenity_id: 2 }, { room_id: 302, amenity_id: 3 }, { room_id: 302, amenity_id: 4 }, { room_id: 302, amenity_id: 5 }, { room_id: 302, amenity_id: 7 }
+    ],
 
-    const rv=db.reviews.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];
-    $('quote').innerHTML=rv?`${ic('quote')}<div><p>“${esc(rv.comment)}”</p><small>— ${esc(rv.guestName)} · Room ${esc(rv.roomNumber)}</small></div>`:'<p>No reviews yet.</p>';
-  }
+    rooms: [
+      { room_id: 101, room_number: '101', floor: 1, room_type_id: 1, room_status_id: 2, max_capacity: 2, base_price_per_night: 55000 },
+      { room_id: 102, room_number: '102', floor: 1, room_type_id: 1, room_status_id: 1, max_capacity: 2, base_price_per_night: 55000 },
+      { room_id: 103, room_number: '103', floor: 1, room_type_id: 4, room_status_id: 3, max_capacity: 4, base_price_per_night: 90000 },
+      { room_id: 201, room_number: '201', floor: 2, room_type_id: 2, room_status_id: 2, max_capacity: 3, base_price_per_night: 110000 },
+      { room_id: 202, room_number: '202', floor: 2, room_type_id: 1, room_status_id: 1, max_capacity: 2, base_price_per_night: 60000 },
+      { room_id: 203, room_number: '203', floor: 2, room_type_id: 2, room_status_id: 1, max_capacity: 3, base_price_per_night: 115000 },
+      { room_id: 301, room_number: '301', floor: 3, room_type_id: 3, room_status_id: 2, max_capacity: 4, base_price_per_night: 220000 },
+      { room_id: 302, room_number: '302', floor: 3, room_type_id: 3, room_status_id: 4, max_capacity: 4, base_price_per_night: 220000 }
+    ],
 
-  function renderRooms(){
-    const q=ui.q.toLowerCase();
-    const list=db.rooms.filter(r=>(ui.floor==='all'||String(r.floor)===ui.floor)&&(ui.rstatus==='all'||r.status===ui.rstatus)&&
-      (!q||r.number.includes(q)||r.type.toLowerCase().includes(q)||r.amenities.join(' ').toLowerCase().includes(q)));
-    $('rooms').innerHTML=list.length?list.map(r=>`<div class="card">
-      <div class="card-h"><b>${esc(r.number)}</b>${pill(r.status)}</div>
-      <div class="card-b">
-        <div><h3>${esc(r.type)}</h3><span class="muted">Floor ${r.floor} · Up to ${r.capacity} guests</span></div>
-        <div class="tags">${r.amenities.map(a=>`<span>${esc(a)}</span>`).join('')}</div>
-        <div class="foot"><div><div class="price">${money(r.rate)}</div><span class="muted">per night</span></div>
-          <button class="btn sm ghost" data-a="room" data-id="${r.id}">Manage</button></div>
-      </div></div>`).join(''):'<div class="empty">No rooms match these filters.</div>';
-  }
+    reservations: [
+      {
+        reservation_id: 1001,
+        client_id: 1,
+        check_in_date: getRelativeDate(-2),
+        check_out_date: getRelativeDate(2),
+        guest_count: 2,
+        status: 'checked_in',
+        created_at: getRelativeDateTime(-10),
+        cancelled_at: null,
+        special_requests: 'Séjour académique. Facturation adressée au Rectorat.'
+      },
+      {
+        reservation_id: 1002,
+        client_id: 2,
+        check_in_date: getRelativeDate(-1),
+        check_out_date: getRelativeDate(3),
+        guest_count: 1,
+        status: 'checked_in',
+        created_at: getRelativeDateTime(-6),
+        cancelled_at: null,
+        special_requests: 'Paiement pris en charge via Orange Money d\'entreprise.'
+      },
+      {
+        reservation_id: 1003,
+        client_id: 3,
+        check_in_date: getRelativeDate(0),
+        check_out_date: getRelativeDate(4),
+        guest_count: 2,
+        status: 'confirmed',
+        created_at: getRelativeDateTime(-3),
+        cancelled_at: null,
+        special_requests: 'Fête de mariage. Prévoir mise en place romantique en Suite 301.'
+      },
+      {
+        reservation_id: 1004,
+        client_id: 5,
+        check_in_date: getRelativeDate(1),
+        check_out_date: getRelativeDate(4),
+        guest_count: 1,
+        status: 'confirmed',
+        created_at: getRelativeDateTime(-2),
+        cancelled_at: null,
+        special_requests: 'Prévoir chauffeur pour rendez-vous à la Délégation Régionale.'
+      },
+      {
+        reservation_id: 1005,
+        client_id: 4,
+        check_in_date: getRelativeDate(-4),
+        check_out_date: getRelativeDate(-1),
+        guest_count: 1,
+        status: 'checked_out',
+        created_at: getRelativeDateTime(-15),
+        cancelled_at: null,
+        special_requests: 'Transit portuaire accompli avec succès.'
+      }
+    ],
 
-  function renderReservations(){
-    const q=ui.q.toLowerCase();
-    let list=db.reservations.filter(r=>ui.resf==='all'||r.status===ui.resf);
-    if(q) list=list.filter(r=>{
-      const rm=room(r.roomId);
-      return r.id.toLowerCase().includes(q)||gName(guest(r.guestId)).toLowerCase().includes(q)||rm.number.includes(q)||rm.type.toLowerCase().includes(q);
-    });
-    list.sort((a,b)=>b.checkIn.localeCompare(a.checkIn));
-    $('resBody').innerHTML=list.length?list.map(r=>{
-      const rm=room(r.roomId),n=nights(r.checkIn,r.checkOut);
-      let acts=`<button class="btn sm ghost" data-a="folio" data-id="${r.id}">Folio</button>`;
-      if(r.status==='confirmed') acts=`<button class="btn sm primary" data-a="checkIn" data-id="${r.id}">Check in</button><button class="btn sm ghost" data-a="cancel" data-id="${r.id}">Cancel</button>`+acts;
-      else if(r.status==='checked_in') acts=`<button class="btn sm primary" data-a="checkOut" data-id="${r.id}">Check out</button>`+acts;
-      return `<tr>
-        <td><b>${esc(r.id)}</b></td>
-        <td>${esc(gName(guest(r.guestId)))}</td>
-        <td>${dShort(r.checkIn)} → ${dShort(r.checkOut)}<br><span class="muted">${plural(n,'night')}</span></td>
-        <td>Room ${esc(rm.number)}<br><span class="muted">${esc(rm.type)}</span></td>
-        <td>${r.guests}</td><td>${pill(r.status)}</td><td>${money(folio(r.id).total)}</td>
-        <td><div class="acts">${acts}</div></td></tr>`;
-    }).join(''):'<tr><td colspan="8" class="empty">No reservations found.</td></tr>';
-  }
+    reservation_rooms: [
+      { reservation_id: 1001, room_id: 101, nightly_price: 55000 },
+      { reservation_id: 1002, room_id: 201, nightly_price: 110000 },
+      { reservation_id: 1003, room_id: 301, nightly_price: 220000 },
+      { reservation_id: 1004, room_id: 203, nightly_price: 115000 },
+      { reservation_id: 1005, room_id: 103, nightly_price: 90000 }
+    ],
 
-  function renderGuests(){
-    const q=(ui.gq||ui.q).toLowerCase();
-    const list=db.guests.filter(g=>!q||gName(g).toLowerCase().includes(q)||g.email.toLowerCase().includes(q)||g.phone.toLowerCase().includes(q));
-    $('guests').innerHTML=list.length?list.map(g=>`<div class="card"><div class="card-b" style="gap:14px">
-      <div style="display:flex;align-items:center;gap:14px"><div class="avatar">${esc(initials(g))}</div>
-        <div><h3>${esc(gName(g))}</h3>${g.vip?'<span class="vip">VIP</span>':''}</div></div>
-      <div class="contact"><div>${ic('mail')}${esc(g.email)}</div><div>${ic('phone')}${esc(g.phone)}</div></div>
-      ${g.notes?`<div class="note">${esc(g.notes)}</div>`:''}</div></div>`).join(''):'<div class="empty">No guests found.</div>';
-  }
+    services: [
+      {
+        service_id: 1,
+        name: 'Dîner Dégustation Ndolè Royal & Gambas de Kribi',
+        description: 'Préparé selon la grande tradition sawa, accompagné de miondo frais et plantains vapeur.',
+        price: 18500,
+        slot_duration_minutes: 90,
+        slot_capacity: 20
+      },
+      {
+        service_id: 2,
+        name: 'Navette Aéroport Douala (Véhicule VIP Climatisé)',
+        description: 'Prise en charge personnalisée avec chauffeur professionnel dès la sortie du terminal.',
+        price: 25000,
+        slot_duration_minutes: 45,
+        slot_capacity: 4
+      },
+      {
+        service_id: 3,
+        name: 'Soin Relaxant aux Baumes Pur Karité & Huile de Coco',
+        description: 'Massage musculaire profond et détente aux senteurs naturelles d\'Afrique centrale.',
+        price: 30000,
+        slot_duration_minutes: 75,
+        slot_capacity: 2
+      },
+      {
+        service_id: 4,
+        name: 'Grand Buffet Petit-Déjeuner Camerounais & Continental',
+        description: 'Fruits frais de Penja, beignets-haricots-bouillie, œufs fermiers, café des Hauts Plateaux.',
+        price: 8500,
+        slot_duration_minutes: 60,
+        slot_capacity: 35
+      },
+      {
+        service_id: 5,
+        name: 'Location Salle de Conférence & Visioconférence',
+        description: 'Écran interactif, sonorisation complète, micro sans fil et service pause-café inclus.',
+        price: 85000,
+        slot_duration_minutes: 240,
+        slot_capacity: 15
+      }
+    ],
 
-  function renderServices(){
-    $('svcs').innerHTML=db.services.map(s=>`<div class="card"><div class="card-b">
-      <h3 style="font-family:var(--serif);font-size:1.1rem">${esc(s.name)}</h3>
-      <p class="muted" style="font-size:.82rem;flex:1">${esc(s.desc)}</p>
-      <div class="foot"><div><div class="price">${money(s.price)}</div><span class="muted">${esc(s.duration)} · per guest</span></div>
-        <button class="btn sm ghost" data-a="bookSvc" data-id="${s.id}">Book</button></div></div></div>`).join('');
-    const q=ui.q.toLowerCase();
-    let list=db.serviceBookings.slice().sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
-    if(q) list=list.filter(b=>{
-      const s=svc(b.serviceId),r=res(b.reservationId),g=r&&guest(r.guestId);
-      return (s&&s.name.toLowerCase().includes(q))||(g&&gName(g).toLowerCase().includes(q))||b.id.toLowerCase().includes(q);
-    });
-    $('svcBody').innerHTML=list.length?list.map(b=>{
-      const s=svc(b.serviceId),r=res(b.reservationId);
-      return `<tr><td><b>${esc(b.id)}</b></td><td>${esc(s?s.name:'Service')}</td>
-        <td>${esc(gName(r&&guest(r.guestId)))}<br><span class="muted">${esc(b.reservationId)}</span></td>
-        <td>${dShort(b.date)} · ${esc(b.time)}</td><td>${b.guests}</td><td>${money(b.price)}</td><td>${pill(b.status)}</td></tr>`;
-    }).join(''):'<tr><td colspan="7" class="empty">No service bookings yet.</td></tr>';
-  }
+    service_opening_hours: [
+      { service_id: 1, day_of_week: 1, opening_time: '12:00:00', closing_time: '23:00:00' },
+      { service_id: 2, day_of_week: 1, opening_time: '00:00:00', closing_time: '23:59:00' },
+      { service_id: 3, day_of_week: 1, opening_time: '09:00:00', closing_time: '21:00:00' },
+      { service_id: 4, day_of_week: 1, opening_time: '06:00:00', closing_time: '11:00:00' },
+      { service_id: 5, day_of_week: 1, opening_time: '08:00:00', closing_time: '19:00:00' }
+    ],
 
-  function renderInvoices(){
-    const q=ui.q.toLowerCase();
-    let list=db.invoices.filter(i=>ui.invf==='all'||(ui.invf==='issued'?(i.status==='issued'||i.status==='draft'):i.status===ui.invf));
-    if(q) list=list.filter(i=>i.id.toLowerCase().includes(q)||i.reservationId.toLowerCase().includes(q)||gName(guest(res(i.reservationId).guestId)).toLowerCase().includes(q));
-    list.sort((a,b)=>b.issueDate.localeCompare(a.issueDate));
-    $('invBody').innerHTML=list.length?list.map(i=>`<tr>
-      <td><b>${esc(i.id)}</b></td><td>${esc(i.reservationId)}</td>
-      <td>${esc(gName(guest(res(i.reservationId).guestId)))}</td><td>${dLong(i.issueDate)}</td>
-      <td>${pill(i.status)}</td><td>${money(folio(i.reservationId).total)}</td><td>${money(paid(i))}</td>
-      <td><div class="acts"><button class="btn sm ghost" data-a="invoice" data-id="${i.id}">View</button></div></td></tr>`).join('')
-      :'<tr><td colspan="8" class="empty">No invoices found.</td></tr>';
-  }
+    service_bookings: [
+      { service_booking_id: 501, reservation_id: 1001, service_id: 1, booking_date: getRelativeDate(-1), start_time: '20:00', guests: 2 },
+      { service_booking_id: 502, reservation_id: 1002, service_id: 2, booking_date: getRelativeDate(-1), start_time: '19:15', guests: 1 },
+      { service_booking_id: 503, reservation_id: 1003, service_id: 3, booking_date: getRelativeDate(1), start_time: '16:30', guests: 2 },
+      { service_booking_id: 504, reservation_id: 1001, service_id: 4, booking_date: getRelativeDate(0), start_time: '07:30', guests: 2 }
+    ],
 
-  function renderReviews(){
-    const total=db.reviews.length;
-    const avg=total?db.reviews.reduce((s,r)=>s+r.rating,0)/total:0;
-    const full=Math.round(avg);
-    $('avg').textContent=avg.toFixed(1);
-    $('avgStars').textContent='★'.repeat(full)+'☆'.repeat(5-full);
-    $('revCount').textContent=`Based on ${plural(total,'review')}`;
-    $('bars').innerHTML=[5,4,3,2,1].map(n=>{
-      const c=db.reviews.filter(r=>r.rating===n).length;
-      return `<div class="bar-row"><span>${n} ★</span><div class="track"><i style="width:${total?c/total*100:0}%"></i></div><span class="muted">${c}</span></div>`;
-    }).join('');
-    const q=ui.q.toLowerCase();
-    const list=db.reviews.filter(r=>!q||r.guestName.toLowerCase().includes(q)||r.comment.toLowerCase().includes(q)).sort((a,b)=>b.date.localeCompare(a.date));
-    $('reviews').innerHTML=list.length?list.map(r=>`<article class="review">
-      <div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
-      <p>“${esc(r.comment)}”</p>
-      <footer><b>${esc(r.guestName)} · Room ${esc(r.roomNumber)}</b><span class="muted">${dLong(r.date)}</span></footer></article>`).join(''):'<div class="empty">No reviews found.</div>';
-  }
+    invoices: [
+      { invoice_id: 9001, reservation_id: 1001, issue_date: getRelativeDate(0), status: 'issued' },
+      { invoice_id: 9002, reservation_id: 1002, issue_date: getRelativeDate(-1), status: 'issued' },
+      { invoice_id: 9003, reservation_id: 1003, issue_date: getRelativeDate(0), status: 'draft' },
+      { invoice_id: 9005, reservation_id: 1005, issue_date: getRelativeDate(-1), status: 'paid' }
+    ],
 
-  function renderAll(){
-    renderBadges();renderDashboard();renderRooms();renderReservations();renderGuests();renderServices();renderInvoices();renderReviews();
-  }
+    invoice_lines: [
+      
+      { invoice_line_id: 1, invoice_id: 9001, line_type: 'room', description: 'Chambre 101 - Confort Côté Jardin (4 nuits)', service_booking_id: null, quantity: 4, unit_price: 55000, tax_rate: 19.25 },
+      { invoice_line_id: 2, invoice_id: 9001, line_type: 'service', description: 'Dîner Dégustation Ndolè Royal & Gambas (2 pers.)', service_booking_id: 501, quantity: 2, unit_price: 18500, tax_rate: 19.25 },
+      { invoice_line_id: 3, invoice_id: 9001, line_type: 'service', description: 'Grand Buffet Petit-Déjeuner Camerounais (2 pers.)', service_booking_id: 504, quantity: 2, unit_price: 8500, tax_rate: 19.25 },
 
-  function switchTab(tab){
-    const t=TABS.find(x=>x[0]===tab);
-    if(!t) return;
-    ui.tab=tab;
-    $$('.view').forEach(v=>v.classList.toggle('on',v.id==='view-'+tab));
-    $$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.id===tab));
-    $('title').textContent=t[3];
-    $('sub').textContent=t[4];
-    window.scrollTo({top:0});
-  }
+      { invoice_line_id: 4, invoice_id: 9002, line_type: 'room', description: 'Chambre 201 - Suite Junior Exécutive (4 nuits)', service_booking_id: null, quantity: 4, unit_price: 110000, tax_rate: 19.25 },
+      { invoice_line_id: 5, invoice_id: 9002, line_type: 'service', description: 'Navette VIP Aéroport de Douala', service_booking_id: 502, quantity: 1, unit_price: 25000, tax_rate: 19.25 },
 
-  function buildNav(){
-    $('nav').innerHTML=TABS.map(t=>`<button data-a="tab" data-id="${t[0]}" title="${t[2]}" aria-label="${t[2]}">${ic(t[1])}<span>${t[2]}</span>${
-      t[0]==='rooms'?'<em class="count" data-count="rooms" style="font-style:normal"></em>':t[0]==='reservations'?'<em class="count hot" data-count="res" style="font-style:normal"></em>':''}</button>`).join('');
-  }
+      { invoice_line_id: 6, invoice_id: 9003, line_type: 'room', description: 'Chambre 301 - Suite Prestige Wouri (4 nuits)', service_booking_id: null, quantity: 4, unit_price: 220000, tax_rate: 19.25 },
+      { invoice_line_id: 7, invoice_id: 9003, line_type: 'service', description: 'Soin Relaxant aux Baumes Pur Karité (Duo)', service_booking_id: 503, quantity: 2, unit_price: 30000, tax_rate: 19.25 },
 
-  function guestOptions(sel){
-    return '<option value="">Select guest</option>'+db.guests.map(g=>`<option value="${g.id}" ${g.id===sel?'selected':''}>${esc(gName(g))}${g.vip?' ★':''}</option>`).join('');
-  }
+      { invoice_line_id: 8, invoice_id: 9005, line_type: 'room', description: 'Chambre 103 - Suite Familiale Baobab (3 nuits)', service_booking_id: null, quantity: 3, unit_price: 90000, tax_rate: 19.25 }
+    ],
 
-  function resModal(roomId,guestId){
-    const t=today();
-    modal('New reservation','Reserve a sanctuary for a guest',`
-      <div class="f"><label>Guest</label><div class="inline">
-        <select class="inp" id="rGuest">${guestOptions(guestId)}</select>
-        <button type="button" class="btn sm ghost" data-a="newGuestFromRes">+ New</button></div></div>
-      <div class="fr">
-        <div class="f"><label>Check-in</label><input type="date" class="inp" id="rIn" value="${t}" min="${t}"></div>
-        <div class="f"><label>Check-out</label><input type="date" class="inp" id="rOut" value="${plus(t,1)}" min="${plus(t,1)}"></div>
-      </div>
-      <div class="fr">
-        <div class="f"><label>Room</label><select class="inp" id="rRoom"></select></div>
-        <div class="f"><label>Guests</label><input type="number" class="inp" id="rGuests" min="1" max="5" value="2"></div>
-      </div>
-      <div class="f"><label>Special requests</label><textarea class="inp" id="rNotes" rows="2" placeholder="Anniversary, quiet room, extra pillows"></textarea></div>
-      <div class="calc"><div><span>Duration</span><b id="cN">0 nights</b></div><div><span>Nightly rate</span><b id="cR">$0.00</b></div><div class="tot"><span>Room subtotal</span><span id="cT">$0.00</span></div></div>`,
-      `<button type="button" class="btn ghost" data-a="close">Cancel</button><button type="submit" class="btn primary">Create reservation</button>`,{form:'res'});
-    roomOptions(roomId);
-  }
+    payments: [
+      { payment_id: 7001, invoice_id: 9005, payment_date: getRelativeDateTime(-1), amount: 321975, method: 'Orange Money (Réf: OM261102.8841)' }
+    ],
 
-  function roomOptions(pref){
-    const a=$('rIn').value,b=$('rOut').value,n=parseInt($('rGuests').value,10)||1,sel=$('rRoom');
-    const cur=pref||sel.value;
-    if(!a||!b||b<=a){sel.innerHTML='<option value="">Pick valid dates</option>';return calc()}
-    const av=db.rooms.filter(r=>r.status!=='Maintenance'&&r.capacity>=n&&isFree(r.id,a,b));
-    sel.innerHTML=av.length?av.map(r=>`<option value="${r.id}">Room ${esc(r.number)} — ${esc(r.type)} (${money(r.rate)})</option>`).join(''):'<option value="">No rooms available</option>';
-    if(cur&&av.some(r=>r.id===cur)) sel.value=cur;
-    calc();
-  }
-  function calc(){
-    const a=$('rIn').value,b=$('rOut').value,rm=room($('rRoom').value);
-    const n=a&&b&&b>a?nights(a,b):0;
-    $('cN').textContent=plural(n,'night');
-    $('cR').textContent=money(rm?rm.rate:0);
-    $('cT').textContent=money(rm?rm.rate*n:0);
-  }
-
-  function guestModal(fromRes){
-    ui.fromRes=fromRes;
-    modal('Register guest','Add a profile to the guest directory',`
-      <div class="fr"><div class="f"><label>First name</label><input class="inp" id="gF" required></div>
-        <div class="f"><label>Last name</label><input class="inp" id="gL" required></div></div>
-      <div class="fr"><div class="f"><label>Email</label><input type="email" class="inp" id="gE" required></div>
-        <div class="f"><label>Phone</label><input type="tel" class="inp" id="gP" required></div></div>
-      <div class="f"><label>Preferences / VIP notes</label><input class="inp" id="gN" placeholder="High floor, sparkling water"></div>`,
-      `<button type="button" class="btn ghost" data-a="close">Cancel</button><button type="submit" class="btn primary">Save guest</button>`,{form:'guest'});
-    setTimeout(()=>$('gF').focus(),50);
-  }
-
-  function roomModal(id){
-    const r=room(id);if(!r) return;
-    ui.room=id;
-    const occ=db.reservations.find(x=>x.roomId===id&&x.status==='checked_in');
-    const g=occ&&guest(occ.guestId);
-    modal(`Room ${esc(r.number)}`,`${esc(r.type)} · Floor ${r.floor}`,`
-      <div class="meta3"><div><small>Rate</small><b>${money(r.rate)}</b></div><div><small>Capacity</small><b>${r.capacity} guests</b></div><div><small>Status</small>${pill(r.status)}</div></div>
-      <div class="f" style="margin-top:18px"><label>Update status</label><div class="setstatus">
-        <button type="button" class="s-available" data-a="setStatus" data-id="Available">Mark available</button>
-        <button type="button" class="s-occupied" data-a="setStatus" data-id="Occupied">Mark occupied</button>
-        <button type="button" class="s-cleaning" data-a="setStatus" data-id="Cleaning">Send to cleaning</button>
-        <button type="button" class="s-maintenance" data-a="setStatus" data-id="Maintenance">Maintenance</button></div></div>
-      <div class="f"><label>Amenities</label><div class="tags">${r.amenities.map(a=>`<span>${esc(a)}</span>`).join('')}</div></div>
-      ${occ?`<div class="f"><label>Current resident</label><div class="row"><div class="avatar" style="width:38px;height:38px;font-size:.8rem">${esc(initials(g))}</div>
-        <div class="grow"><b>${esc(gName(g))}</b><span class="muted">${occ.id} · ${dShort(occ.checkIn)} → ${dShort(occ.checkOut)}</span></div></div></div>`:''}`,
-      `<button type="button" class="btn ghost" data-a="close">Close</button><button type="button" class="btn primary" data-a="bookRoom" ${r.status==='Maintenance'?'disabled':''}>Book this room</button>`);
-  }
-
-  function svcModal(serviceId){
-    const act=db.reservations.filter(active);
-    const t=today();
-    modal('Book a service','Curate a moment for our guest',`
-      <div class="f"><label>Experience</label><select class="inp" id="sSel">${db.services.map(s=>`<option value="${s.id}" ${s.id===serviceId?'selected':''}>${esc(s.name)} — ${money(s.price)}</option>`).join('')}</select></div>
-      <div class="f"><label>Reservation</label><select class="inp" id="sRes">${act.length?act.map(r=>`<option value="${r.id}">${r.id} — ${esc(gName(guest(r.guestId)))} (Room ${esc(room(r.roomId).number)})</option>`).join(''):'<option value="">No active reservations</option>'}</select></div>
-      <div class="fr"><div class="f"><label>Date</label><input type="date" class="inp" id="sDate" value="${t}" min="${t}"></div>
-        <div class="f"><label>Time</label><input type="time" class="inp" id="sTime" value="15:00"></div></div>
-      <div class="fr"><div class="f"><label>Guests</label><input type="number" class="inp" id="sGuests" min="1" max="6" value="1"></div>
-        <div class="f"><label>Total</label><div class="price" id="sPrice" style="padding-top:4px">$0.00</div></div></div>`,
-      `<button type="button" class="btn ghost" data-a="close">Cancel</button><button type="submit" class="btn primary">Confirm booking</button>`,{form:'svc'});
-    svcPrice();
-  }
-  function svcPrice(){
-    const s=svc($('sSel').value),n=parseInt($('sGuests').value,10)||1;
-    $('sPrice').textContent=money(s?s.price*n:0);
-  }
-
-  function invoiceModal(invId){
-    const inv=db.invoices.find(i=>i.id===invId);if(!inv) return;
-    const r=res(inv.reservationId),g=guest(r.guestId),rm=room(r.roomId),f=folio(inv.reservationId);
-    const p=paid(inv),bal=Math.max(0,Math.round((f.total-p)*100)/100);
-    const body=`
-      <div class="folio-h"><div><b>Aura Grand Hotel & Spa</b><div class="muted">Guest folio · ${esc(inv.id)}</div></div>
-        <div style="text-align:right">${pill(inv.status)}<div class="muted" style="margin-top:6px">Issued ${dLong(inv.issueDate)}</div></div></div>
-      <div class="folio-2">
-        <div><h4>Billed to</h4><b>${esc(gName(g))}</b><div class="muted">${esc(g.email)}<br>${esc(g.phone)}</div></div>
-        <div><h4>Stay</h4><b>${esc(r.id)} · Room ${esc(rm.number)}</b><div class="muted">${dLong(r.checkIn)} → ${dLong(r.checkOut)}<br>${esc(rm.type)}</div></div>
-      </div>
-      <div class="tablewrap" style="box-shadow:none;margin-bottom:18px"><table class="folio-t">
-        <thead><tr><th>Description</th><th>Details</th><th class="r">Amount</th></tr></thead>
-        <tbody>${f.lines.map(l=>`<tr><td>${esc(l.desc)}</td><td>${esc(l.detail)}</td><td class="r">${money(l.amount)}</td></tr>`).join('')}</tbody></table></div>
-      <div class="calc totals">
-        <div><span>Subtotal</span><span>${money(f.subtotal)}</span></div>
-        <div><span>Tax (${TAX*100}%)</span><span>${money(f.tax)}</span></div>
-        <div><span>Paid</span><span>− ${money(p)}</span></div>
-        <div class="tot"><span>Balance due</span><span>${money(bal)}</span></div></div>
-      ${inv.payments.length?`<div class="folio-pay" style="margin-top:18px"><h4>Payments</h4>${inv.payments.map(x=>`<div class="muted">${dLong(x.date)} · ${esc(x.method)} · ${money(x.amount)}</div>`).join('')}</div>`:''}`;
-    let foot=`<button type="button" class="btn ghost" data-a="close">Close</button>`;
-    if(bal>0&&inv.status!=='draft') foot+=`<select class="inp pay-select" id="payMethod"><option>Credit Card</option><option>Cash</option><option>Bank Transfer</option><option>Mobile Money</option></select>
-      <button type="button" class="btn primary" data-a="pay" data-id="${inv.id}">Record payment (${money(bal)})</button>`;
-    else if(bal>0) foot+=`<button type="button" class="btn primary" data-a="issue" data-id="${inv.id}">Issue invoice</button>`;
-    modal('Hotel folio','Official guest billing summary',body,foot,{wide:true,print:true});
-  }
-
-  function reviewModal(){
-    const done=new Set(db.reviews.map(r=>r.reservationId).filter(Boolean));
-    const stays=db.reservations.filter(r=>r.status==='checked_out'&&!done.has(r.id));
-    ui.rating=5;
-    modal('Record a review','Preserve genuine guest impressions',`
-      <div class="f"><label>Completed stay</label><select class="inp" id="vRes">${stays.length?stays.map(r=>`<option value="${r.id}">${r.id} — ${esc(gName(guest(r.guestId)))} (Room ${esc(room(r.roomId).number)})</option>`).join(''):'<option value="">No stays awaiting a review</option>'}</select></div>
-      <div class="f"><label>Rating</label><div class="starpick" id="stars">${[1,2,3,4,5].map(n=>`<button type="button" class="on" data-a="star" data-id="${n}" aria-label="${n} stars">★</button>`).join('')}</div></div>
-      <div class="f"><label>Feedback</label><textarea class="inp" id="vText" rows="3" placeholder="What made the stay memorable?"></textarea></div>`,
-      `<button type="button" class="btn ghost" data-a="close">Cancel</button><button type="submit" class="btn primary">Save review</button>`,{form:'review'});
-  }
-
-  const forms={
-    res(){
-      const guestId=$('rGuest').value,roomId=$('rRoom').value,a=$('rIn').value,b=$('rOut').value,n=parseInt($('rGuests').value,10);
-      if(!guestId) return toast('Please select a guest.','info');
-      if(!roomId) return toast('Please select an available room.','info');
-      if(b<=a) return toast('Check-out must be after check-in.','info');
-      const rm=room(roomId);
-      if(n>rm.capacity) return toast(`Room ${rm.number} sleeps up to ${rm.capacity}.`,'info');
-      if(!isFree(roomId,a,b)) return toast('That room is no longer free for these dates.','info');
-      db.counters.res+=1;
-      const r={id:`RES-${db.counters.res}`,guestId,roomId,checkIn:a,checkOut:b,guests:n,status:'confirmed',notes:$('rNotes').value.trim()};
-      db.reservations.push(r);save();closeModal();renderAll();
-      toast(`${r.id} confirmed for ${gName(guest(guestId))}.`);
-    },
-    guest(){
-      const email=$('gE').value.trim();
-      if(!$('gF').value.trim()||!$('gL').value.trim()||!email||!$('gP').value.trim()) return toast('Please fill in all required fields.','info');
-      if(db.guests.some(g=>g.email.toLowerCase()===email.toLowerCase())) return toast('A guest with this email already exists.','info');
-      db.counters.guest+=1;
-      const notes=$('gN').value.trim();
-      const g={id:`g${db.counters.guest}`,firstName:$('gF').value.trim(),lastName:$('gL').value.trim(),email,phone:$('gP').value.trim(),notes,vip:/vip/i.test(notes)};
-      db.guests.push(g);save();renderAll();
-      if(ui.fromRes) resModal(null,g.id); else closeModal();
-      toast(`${gName(g)} added to the directory.`);
-    },
-    svc(){
-      const s=svc($('sSel').value),resId=$('sRes').value;
-      if(!s||!resId) return toast('Choose a service and an active reservation.','info');
-      const n=parseInt($('sGuests').value,10)||1;
-      db.counters.sb+=1;
-      const b={id:`SB-${db.counters.sb}`,serviceId:s.id,reservationId:resId,date:$('sDate').value,time:$('sTime').value,guests:n,price:s.price*n,status:'confirmed'};
-      db.serviceBookings.push(b);save();closeModal();renderAll();
-      toast(`${s.name} booked for ${dShort(b.date)} at ${b.time}.`);
-    },
-    review(){
-      const r=res($('vRes').value);
-      if(!r) return toast('Select a completed stay to review.','info');
-      const text=$('vText').value.trim();
-      if(!text) return toast('Please add some feedback.','info');
-      db.counters.rev+=1;
-      db.reviews.push({id:`rv${db.counters.rev}`,reservationId:r.id,guestName:gName(guest(r.guestId)),roomNumber:room(r.roomId).number,rating:ui.rating,comment:text,date:today()});
-      save();closeModal();renderAll();toast('Review saved. Thank you!');
-    }
+    reviews: [
+      {
+        review_id: 801,
+        reservation_id: 1005,
+        rating: 5,
+        comment: 'Accueil digne des grands palaces camerounais. Le personnel de réception à Bonanjo est d\'une politesse et d\'une serviabilité exemplaires. La chambre 103 était impeccable et la connexion fibre d\'une grande rapidité.',
+        review_date: getRelativeDate(-1),
+        author_name: 'Christian Tchouta'
+      },
+      {
+        review_id: 802,
+        reservation_id: 1001,
+        rating: 5,
+        comment: 'Un séjour de travail très productif. Le silence la nuit, le générateur automatique sans coupure et le petit-déjeuner avec les beignets chauds et les fruits de saison font toute la différence.',
+        review_date: getRelativeDate(0),
+        author_name: 'Pr. Jean-Paul Mbarga'
+      },
+      {
+        review_id: 803,
+        reservation_id: 1002,
+        rating: 5,
+        comment: 'Le chauffeur de la navette m\'attendait déjà à l\'aéroport de Douala malgré le léger retard du vol. Règlement de la facture ultra-simple par Orange Money d\'entreprise. Je recommande vivement pour les cadres en mission.',
+        review_date: getRelativeDate(0),
+        author_name: 'Aïssatou Bello'
+      },
+      {
+        review_id: 804,
+        reservation_id: 1003,
+        rating: 5,
+        comment: 'La vue sur le Wouri depuis la Suite 301 au coucher de soleil est tout simplement magique. Le Ndolè aux crevettes au restaurant était un régal absolu. Merci à toute l\'équipe pour l\'attention portée à notre anniversaire.',
+        review_date: getRelativeDate(-2),
+        author_name: 'Suzanne Mballa'
+      },
+      {
+        review_id: 805,
+        reservation_id: 1004,
+        rating: 4,
+        comment: 'Très belle infrastructure hôtelière. Cadre verdoyant et sécurisé. Prévoir éventuellement quelques options de thé vert au citron au bar pour les soirées de travail.',
+        review_date: getRelativeDate(-4),
+        author_name: 'Nadine Essomba'
+      }
+    ]
   };
 
-  const actions={
-    tab:id=>switchTab(id),
-    close:closeModal,
-    print:()=>window.print(),
-    newRes:()=>resModal(),
-    newGuest:()=>guestModal(false),
-    newGuestFromRes:()=>guestModal(true),
-    bookSvc:id=>svcModal(id),
-    newReview:reviewModal,
-    room:id=>roomModal(id),
-    bookRoom:()=>resModal(ui.room),
-    setStatus:id=>{
-      const r=room(ui.room);if(!r) return;
-      r.status=id;save();renderAll();roomModal(r.id);
-      toast(`Room ${r.number} marked ${id.toLowerCase()}.`,'info');
-    },
-    checkIn:id=>{
-      const r=res(id),rm=room(r.roomId);
-      if(rm.status==='Maintenance') return toast(`Room ${rm.number} is under maintenance.`,'info');
-      if(rm.status==='Occupied') return toast(`Room ${rm.number} is still occupied.`,'info');
-      r.status='checked_in';rm.status='Occupied';save();renderAll();
-      toast(`${gName(guest(r.guestId))} checked in to Room ${rm.number}. Welcome!`);
-    },
-    checkOut:id=>{
-      const r=res(id);
-      r.status='checked_out';room(r.roomId).status='Cleaning';
-      const inv=ensureInvoice(id);
-      if(inv.status==='draft') inv.status='issued';
-      inv.issueDate=today();save();renderAll();
-      toast(`Checked out. Invoice ${inv.id} issued.`);
-      invoiceModal(inv.id);
-    },
-    cancel:id=>{
-      if(!confirm(`Cancel reservation ${id}?`)) return;
-      res(id).status='cancelled';save();renderAll();toast(`Reservation ${id} cancelled.`,'info');
-    },
-    folio:id=>{const inv=ensureInvoice(id);renderInvoices();invoiceModal(inv.id)},
-    invoice:id=>invoiceModal(id),
-    issue:id=>{
-      const inv=db.invoices.find(i=>i.id===id);
-      inv.status='issued';inv.issueDate=today();save();renderAll();invoiceModal(id);toast(`Invoice ${id} issued.`);
-    },
-    pay:id=>{
-      const inv=db.invoices.find(i=>i.id===id);
-      const bal=Math.round((folio(inv.reservationId).total-paid(inv))*100)/100;
-      if(bal<=0) return;
-      const m=$('payMethod')?$('payMethod').value:'Credit Card';
-      inv.payments.push({amount:bal,method:m,date:today()});
-      inv.status='paid';save();renderAll();invoiceModal(id);toast(`Payment of ${money(bal)} recorded.`);
-    },
-    star:id=>{
-      ui.rating=Number(id);
-      $$('#stars button').forEach(b=>b.classList.toggle('on',Number(b.dataset.id)<=ui.rating));
-    },
-    floor:(id,t)=>{ui.floor=id;setOn(t);renderRooms()},
-    rstatus:(id,t)=>{ui.rstatus=id;setOn(t);renderRooms()},
-    resf:(id,t)=>{ui.resf=id;setOn(t);renderReservations()},
-    invf:(id,t)=>{ui.invf=id;setOn(t);renderInvoices()},
-    reset:()=>{
-      if(!confirm('Reset all data to the demo defaults?')) return;
-      localStorage.removeItem(KEY);db=seed();fixPayments();save();renderAll();toast('Demo data restored.','info');
+  class HotelApp {
+    constructor() {
+      this.state = this.loadState();
+      this.activeTab = 'dashboard';
+      this.selectedFloor = 'all';
+      this.selectedRoomStatus = 'all';
+      this.reservationFilterStatus = 'all';
+      this.invoiceFilterStatus = 'all';
+      this.activeInspectingRoomId = null;
+
+      this.init();
     }
-  };
-  function setOn(t){$$('[data-a="'+t.dataset.a+'"]',t.parentElement).forEach(x=>x.classList.toggle('on',x===t))}
 
-  document.addEventListener('click',e=>{
-    const t=e.target.closest('[data-a]');
-    if(t&&actions[t.dataset.a]) actions[t.dataset.a](t.dataset.id,t);
-    else if(e.target===$('overlay')) closeModal();
-  });
-  document.addEventListener('submit',e=>{
-    e.preventDefault();
-    const f=e.target.dataset.form;
-    if(f&&forms[f]) forms[f]();
-  });
-  document.addEventListener('input',e=>{
-    const id=e.target.id;
-    if(id==='q'){
-      ui.q=e.target.value.trim();
-      if(ui.q&&ui.tab==='dashboard') switchTab('reservations');
-      renderRooms();renderReservations();renderGuests();renderServices();renderInvoices();renderReviews();
-    }else if(id==='gq'){ui.gq=e.target.value.trim();renderGuests()}
-    else if(id==='sGuests') svcPrice();
-  });
-  document.addEventListener('change',e=>{
-    const id=e.target.id;
-    if(id==='rIn'){
-      const next=plus($('rIn').value||today(),1);
-      $('rOut').min=next;
-      if($('rOut').value<=$('rIn').value) $('rOut').value=next;
-      roomOptions();
-    }else if(id==='rOut'||id==='rGuests') roomOptions();
-    else if(id==='rRoom') calc();
-    else if(id==='sSel') svcPrice();
-  });
-  document.addEventListener('keydown',e=>{
-    const tag=(document.activeElement&&document.activeElement.tagName)||'';
-    if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(tag)){e.preventDefault();$('q').focus()}
-    else if(e.key==='Escape') closeModal();
-  });
+    loadState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          return JSON.parse(saved);
+        }
+      } catch (err) {
+        console.warn('Erreur de lecture du localStorage, chargement des données par défaut:', err);
+      }
+      return JSON.parse(JSON.stringify(DEFAULT_DATA));
+    }
 
-  load();
-  buildNav();
-  renderAll();
-  switchTab('dashboard');
+    saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+      } catch (err) {
+        console.error('Échec de la sauvegarde dans le stockage local:', err);
+      }
+    }
+
+    resetState() {
+      if (confirm('Voulez-vous réinitialiser toutes les données de l\'hôtel avec les données de démonstration du Cameroun ?')) {
+        this.state = JSON.parse(JSON.stringify(DEFAULT_DATA));
+        this.saveState();
+        this.renderAll();
+        this.showToast('Données réinitialisées avec succès aux standards de l\'hôtel.', 'info');
+      }
+    }
+
+    init() {
+      this.bindNav();
+      this.bindSearch();
+      this.bindClock();
+      this.bindModals();
+      this.bindFilters();
+      this.renderAll();
+    }
+
+    bindNav() {
+      const navButtons = document.querySelectorAll('.nav-item');
+      navButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = btn.dataset.tab;
+          this.switchTab(tab);
+        });
+      });
+
+      document.getElementById('btnResetDemo').addEventListener('click', () => this.resetState());
+      document.getElementById('btnOpenNewReservation').addEventListener('click', () => this.openNewReservationModal());
+      document.getElementById('btnOpenNewGuest').addEventListener('click', () => this.openNewGuestModal());
+      document.getElementById('btnOpenBookService').addEventListener('click', () => this.openBookServiceModal());
+      document.getElementById('btnOpenAddReview').addEventListener('click', () => this.openAddReviewModal());
+    }
+
+    switchTab(tabName) {
+      this.activeTab = tabName;
+
+      document.querySelectorAll('.nav-item').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === tabName);
+      });
+
+      document.querySelectorAll('.tab-view').forEach(v => {
+        v.classList.toggle('active', v.id === `view-${tabName}`);
+      });
+
+      const titleEl = document.getElementById('pageTitle');
+      const subEl = document.getElementById('pageSubtitle');
+      const titles = {
+        dashboard: { t: 'Main Courante & Réception', s: 'Flux en direct des clients, réservations du jour et suivi de l\'occupation.' },
+        rooms: { t: 'Chambres & Pavillons', s: 'Plan des étages, disponibilité immédiate et état d\'entretien du parc.' },
+        reservations: { t: 'Réservations & Séjours', s: 'Suivi rigoureux des arrivées, départs, fiches de police et séjours confirmés.' },
+        guests: { t: 'Fichier Clients & VIP', s: 'Répertoire permanent des résidents, fidélité et préférences d\'hospitalité.' },
+        services: { t: 'Restauration & Services', s: 'Gastronomie sawa, navettes aéroport, soins et salles de réunion.' },
+        invoices: { t: 'Facturation & Règlements', s: 'Folios des résidents, TVA 19.25%, paiements Orange Money, MTN MoMo, Espèces.' },
+        reviews: { t: 'Livre d\'Or & Avis Clients', s: 'Témoignages authentiques et appréciation de l\'hospitalité camerounaise.' }
+      };
+
+      if (titles[tabName]) {
+        titleEl.textContent = titles[tabName].t;
+        subEl.textContent = titles[tabName].s;
+      }
+
+      this.renderCurrentView();
+    }
+
+    renderCurrentView() {
+      switch (this.activeTab) {
+        case 'dashboard': this.renderDashboard(); break;
+        case 'rooms': this.renderRooms(); break;
+        case 'reservations': this.renderReservations(); break;
+        case 'guests': this.renderGuests(); break;
+        case 'services': this.renderServices(); break;
+        case 'invoices': this.renderInvoices(); break;
+        case 'reviews': this.renderReviews(); break;
+      }
+      this.updateBadges();
+    }
+
+    renderAll() {
+      this.renderDashboard();
+      this.renderRooms();
+      this.renderReservations();
+      this.renderGuests();
+      this.renderServices();
+      this.renderInvoices();
+      this.renderReviews();
+      this.updateBadges();
+    }
+
+    bindClock() {
+      const updateClock = () => {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        const dateStr = now.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+        const clockEl = document.getElementById('clockDisplay');
+        if (clockEl) {
+          clockEl.querySelector('.clock-time').textContent = timeStr + ' (WAT)';
+          clockEl.querySelector('.clock-date').textContent = dateStr.toUpperCase() + ' • DOUALA';
+        }
+      };
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    bindSearch() {
+      const searchInput = document.getElementById('globalSearchInput');
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        this.handleGlobalSearch(query);
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement !== searchInput && !document.querySelector('.modal-overlay.open')) {
+          e.preventDefault();
+          searchInput.focus();
+        } else if (e.key === 'Escape') {
+          this.closeAllModals();
+        }
+      });
+    }
+
+    handleGlobalSearch(query) {
+      if (!query) {
+        this.renderAll();
+        return;
+      }
+
+      if (this.activeTab === 'dashboard') {
+        this.switchTab('reservations');
+      }
+
+      if (this.activeTab === 'reservations') {
+        const filtered = this.state.reservations.filter(res => {
+          const client = this.getClient(res.client_id);
+          const fullName = client ? `${client.first_name} ${client.last_name}`.toLowerCase() : '';
+          return (
+            res.reservation_id.toString().includes(query) ||
+            fullName.includes(query) ||
+            res.status.toLowerCase().includes(query)
+          );
+        });
+        this.renderReservationsList(filtered);
+      } else if (this.activeTab === 'guests') {
+        const filtered = this.state.clients.filter(c => {
+          const fullName = `${c.first_name} ${c.last_name}`.toLowerCase();
+          return fullName.includes(query) || c.email.toLowerCase().includes(query) || c.phone.includes(query);
+        });
+        this.renderGuestsList(filtered);
+      } else if (this.activeTab === 'rooms') {
+        const filtered = this.state.rooms.filter(r => {
+          const type = this.getRoomType(r.room_type_id);
+          const typeName = type ? type.name.toLowerCase() : '';
+          return r.room_number.includes(query) || typeName.includes(query);
+        });
+        this.renderRoomsList(filtered);
+      }
+    }
+
+    bindFilters() {
+      
+      document.querySelectorAll('#floorFilters .pill-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#floorFilters .pill-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          this.selectedFloor = btn.dataset.floor;
+          this.renderRooms();
+        });
+      });
+
+      document.querySelectorAll('#statusFilters .pill-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#statusFilters .pill-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          this.selectedRoomStatus = btn.dataset.status;
+          this.renderRooms();
+        });
+      });
+
+      document.querySelectorAll('#reservationStatusTabs .subnav-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#reservationStatusTabs .subnav-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          this.reservationFilterStatus = btn.dataset.status;
+          this.renderReservations();
+        });
+      });
+
+      const guestFilterInput = document.getElementById('guestSearchInput');
+      if (guestFilterInput) {
+        guestFilterInput.addEventListener('input', (e) => {
+          const q = e.target.value.toLowerCase().trim();
+          const filtered = this.state.clients.filter(c => {
+            const name = `${c.first_name} ${c.last_name}`.toLowerCase();
+            return name.includes(q) || c.email.toLowerCase().includes(q) || c.phone.includes(q);
+          });
+          this.renderGuestsList(filtered);
+        });
+      }
+
+      document.querySelectorAll('#invoiceStatusTabs .subnav-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#invoiceStatusTabs .subnav-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          this.invoiceFilterStatus = btn.dataset.status;
+          this.renderInvoices();
+        });
+      });
+
+      const checkInInput = document.getElementById('resCheckIn');
+      const checkOutInput = document.getElementById('resCheckOut');
+      const roomSelect = document.getElementById('resRoomSelect');
+
+      const updateResPricing = () => {
+        if (!checkInInput.value || !checkOutInput.value) return;
+        const d1 = new Date(checkInInput.value);
+        const d2 = new Date(checkOutInput.value);
+        const diffTime = d2 - d1;
+        const nights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+        const selectedRoomId = parseInt(roomSelect.value, 10);
+        const room = this.state.rooms.find(r => r.room_id === selectedRoomId);
+        const rate = room ? room.base_price_per_night : 0;
+        const total = nights * rate;
+
+        document.getElementById('calcNights').textContent = `${nights} nuitée${nights > 1 ? 's' : ''}`;
+        document.getElementById('calcRate').textContent = `${formatFCFA(rate)} / nuit`;
+        document.getElementById('calcTotal').textContent = formatFCFA(total);
+      };
+
+      if (checkInInput && checkOutInput && roomSelect) {
+        checkInInput.addEventListener('change', updateResPricing);
+        checkOutInput.addEventListener('change', updateResPricing);
+        roomSelect.addEventListener('change', updateResPricing);
+      }
+
+      const starPicks = document.querySelectorAll('.star-pick');
+      starPicks.forEach(star => {
+        star.addEventListener('click', () => {
+          const val = parseInt(star.dataset.val, 10);
+          document.getElementById('reviewRatingVal').value = val;
+          starPicks.forEach(s => {
+            const sVal = parseInt(s.dataset.val, 10);
+            s.classList.toggle('active', sVal <= val);
+          });
+        });
+      });
+    }
+
+    updateBadges() {
+      const availCount = this.state.rooms.filter(r => r.room_status_id === 1).length;
+      const activeResCount = this.state.reservations.filter(r => r.status === 'confirmed' || r.status === 'checked_in').length;
+      document.getElementById('availableRoomsBadge').textContent = availCount;
+      document.getElementById('activeReservationsBadge').textContent = activeResCount;
+    }
+
+    renderDashboard() {
+      const totalRooms = this.state.rooms.length;
+      const occupiedRooms = this.state.rooms.filter(r => r.room_status_id === 2).length;
+      const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+
+      const todayStr = getRelativeDate(0);
+      const arrivalsToday = this.state.reservations.filter(r => r.check_in_date === todayStr && r.status !== 'cancelled').length;
+      const departuresToday = this.state.reservations.filter(r => r.check_out_date === todayStr && r.status !== 'cancelled').length;
+      const servicesCount = this.state.service_bookings.length;
+
+      document.getElementById('statOccupancyRate').textContent = `${occupancyRate}%`;
+      document.getElementById('statOccupancyDetail').textContent = `${occupiedRooms} sur ${totalRooms} chambres occupées`;
+      document.getElementById('statTodayArrivals').textContent = arrivalsToday;
+      document.getElementById('statTodayDepartures').textContent = departuresToday;
+      document.getElementById('statActiveServices').textContent = servicesCount;
+
+      const scheduleContainer = document.getElementById('todayScheduleList');
+      scheduleContainer.innerHTML = '';
+
+      const relevantRes = this.state.reservations.filter(r =>
+        (r.check_in_date === todayStr || r.check_out_date === todayStr) && r.status !== 'cancelled'
+      );
+
+      if (relevantRes.length === 0) {
+        scheduleContainer.innerHTML = `
+          <div class="empty-state-card" style="padding: 24px; text-align: center; color: var(--text-muted);">
+            <p>Aucune arrivée ou départ prévu pour ce jour.</p>
+            <span style="font-size: 0.75rem;">Tous nos résidents actuels sont confortablement installés.</span>
+          </div>
+        `;
+      } else {
+        relevantRes.forEach(res => {
+          const client = this.getClient(res.client_id);
+          const roomObj = this.getReservationRoom(res.reservation_id);
+          const isArrival = res.check_in_date === todayStr;
+
+          const itemEl = document.createElement('div');
+          itemEl.className = 'timeline-item';
+          itemEl.innerHTML = `
+            <div class="timeline-time-badge">
+              <span class="time-type ${isArrival ? 'arrival' : 'departure'}">${isArrival ? 'Arrivée' : 'Départ'}</span>
+              <span class="time-val">${isArrival ? '14:00' : '11:00'}</span>
+            </div>
+            <div class="timeline-guest-info">
+              <div class="guest-name">
+                ${client ? `${client.first_name} ${client.last_name}` : 'Client'}
+                ${client && (client.vip_tier === 'Or' || client.vip_tier === 'Platine') ? `<span class="vip-badge">${client.vip_tier}</span>` : ''}
+              </div>
+              <div class="guest-meta">
+                ${roomObj ? `Chambre ${roomObj.room_number}` : 'Chambre non attribuée'} • ${res.guest_count} Personne${res.guest_count > 1 ? 's' : ''} •
+                <span class="status-pill status-${res.status}">${this.formatStatusFR(res.status)}</span>
+              </div>
+            </div>
+            <div class="timeline-actions">
+              ${isArrival && res.status === 'confirmed' ? `
+                <button class="btn btn-sm btn-primary" onclick="app.checkInReservation(${res.reservation_id})">Enregistrer (Check-in)</button>
+              ` : ''}
+              ${res.status === 'checked_in' ? `
+                <button class="btn btn-sm btn-outline" onclick="app.checkOutReservation(${res.reservation_id})">Libérer (Check-out)</button>
+              ` : ''}
+              <button class="btn btn-sm btn-outline" onclick="app.openInvoiceForReservation(${res.reservation_id})" title="Voir le Folio">Facture</button>
+            </div>
+          `;
+          scheduleContainer.appendChild(itemEl);
+        });
+      }
+
+      const matrixContainer = document.getElementById('roomQuickMatrix');
+      matrixContainer.innerHTML = '';
+      this.state.rooms.forEach(room => {
+        const statusObj = this.getRoomStatus(room.room_status_id);
+        const shortStatus = statusObj.name === 'Disponible' ? 'avail' : statusObj.name === 'Occupée' ? 'occ' : statusObj.name === 'Nettoyage' ? 'clean' : 'maint';
+
+        const chip = document.createElement('div');
+        chip.className = `room-chip ${shortStatus}`;
+        chip.title = `Chambre ${room.room_number} • ${statusObj.name}`;
+        chip.innerHTML = `
+          <span class="room-chip-num">${room.room_number}</span>
+          <span class="room-chip-status"></span>
+        `;
+        chip.onclick = () => this.openRoomDetailModal(room.room_id);
+        matrixContainer.appendChild(chip);
+      });
+
+      const reviewBox = document.getElementById('dashboardRandomReview');
+      if (this.state.reviews.length > 0 && reviewBox) {
+        const randReview = this.state.reviews[Math.floor(Math.random() * this.state.reviews.length)];
+        reviewBox.innerHTML = `
+          <p class="quote-text">"${randReview.comment}"</p>
+          <span class="quote-author">— ${randReview.author_name}</span>
+        `;
+      }
+    }
+
+    renderRooms() {
+      let filtered = [...this.state.rooms];
+
+      if (this.selectedFloor !== 'all') {
+        const floorNum = parseInt(this.selectedFloor, 10);
+        filtered = filtered.filter(r => r.floor === floorNum);
+      }
+
+      if (this.selectedRoomStatus !== 'all') {
+        const statusMap = {
+          'Available': 'Disponible',
+          'Occupied': 'Occupée',
+          'Cleaning': 'Nettoyage',
+          'Maintenance': 'Maintenance',
+          'Disponible': 'Disponible',
+          'Occupée': 'Occupée',
+          'Nettoyage': 'Nettoyage'
+        };
+        const targetName = statusMap[this.selectedRoomStatus] || this.selectedRoomStatus;
+        const statusId = this.state.room_statuses.find(s => s.name === targetName)?.room_status_id;
+        if (statusId) {
+          filtered = filtered.filter(r => r.room_status_id === statusId);
+        }
+      }
+
+      this.renderRoomsList(filtered);
+    }
+
+    renderRoomsList(rooms) {
+      const grid = document.getElementById('roomsGrid');
+      grid.innerHTML = '';
+
+      if (rooms.length === 0) {
+        grid.innerHTML = `<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: var(--text-muted);">Aucune chambre ne correspond à ce filtre.</div>`;
+        return;
+      }
+
+      rooms.forEach(room => {
+        const roomType = this.getRoomType(room.room_type_id);
+        const roomStatus = this.getRoomStatus(room.room_status_id);
+        const amenities = this.getRoomAmenities(room.room_id);
+        const occupant = this.getRoomCurrentResident(room.room_id);
+
+        const statusClass = roomStatus.name === 'Disponible' ? 'available' : roomStatus.name === 'Occupée' ? 'occupied' : roomStatus.name === 'Nettoyage' ? 'cleaning' : 'maintenance';
+
+        const card = document.createElement('div');
+        card.className = 'room-card';
+        card.innerHTML = `
+          <div class="room-card-header">
+            <span class="room-num-badge">Chambre ${room.room_number}</span>
+            <span class="status-pill status-${statusClass}">${roomStatus.name}</span>
+          </div>
+          <div class="room-card-body">
+            <h3 class="room-type-name">${roomType ? roomType.name : 'Standard'}</h3>
+            <span class="room-floor-tag">${room.floor === 1 ? '1er Étage (Côté Jardin)' : room.floor === 2 ? '2ème Étage (Terrasse)' : '3ème Étage (Vue Wouri)'} • Max ${room.max_capacity} pers.</span>
+
+            <div class="room-amenities-row">
+              ${amenities.slice(0, 4).map(a => `<span class="amenity-badge">${a.name}</span>`).join('')}
+              ${amenities.length > 4 ? `<span class="amenity-badge">+${amenities.length - 4} autres</span>` : ''}
+            </div>
+
+            ${occupant ? `
+              <div style="font-size: 0.76rem; background: var(--bg-canvas); padding: 8px; border-radius: 6px; margin-bottom: 12px; border: 1px solid var(--border-subtle);">
+                <strong>Résident actuel :</strong> ${occupant.first_name} ${occupant.last_name} (${occupant.phone})
+              </div>
+            ` : ''}
+
+            <div class="room-pricing-row">
+              <div class="room-rate">
+                <span class="rate-amount">${formatFCFA(room.base_price_per_night)}</span>
+                <span class="rate-label">par nuitée (hors taxes)</span>
+              </div>
+              <div class="room-card-actions">
+                <button class="btn btn-sm btn-outline" onclick="app.openRoomDetailModal(${room.room_id})">Détails</button>
+                ${room.room_status_id === 1 ? `
+                  <button class="btn btn-sm btn-primary" onclick="app.quickBookRoom(${room.room_id})">Réserver</button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    renderReservations() {
+      let filtered = [...this.state.reservations];
+      if (this.reservationFilterStatus !== 'all') {
+        filtered = filtered.filter(r => r.status === this.reservationFilterStatus);
+      }
+      this.renderReservationsList(filtered);
+    }
+
+    renderReservationsList(reservations) {
+      const tbody = document.getElementById('reservationsTableBody');
+      tbody.innerHTML = '';
+
+      if (reservations.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);">Aucune réservation trouvée dans cette catégorie.</td></tr>`;
+        return;
+      }
+
+      reservations.sort((a, b) => b.reservation_id - a.reservation_id);
+
+      reservations.forEach(res => {
+        const client = this.getClient(res.client_id);
+        const room = this.getReservationRoom(res.reservation_id);
+        const roomType = room ? this.getRoomType(room.room_type_id) : null;
+        const total = this.calculateReservationTotal(res.reservation_id);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>#RES-${res.reservation_id}</strong></td>
+          <td>
+            <div style="font-weight: 600;">${client ? `${client.first_name} ${client.last_name}` : 'Client Inconnu'}</div>
+            <div style="font-size: 0.74rem; color: var(--text-muted);">${client ? client.phone : ''}</div>
+          </td>
+          <td>
+            <div style="font-size: 0.82rem;">${res.check_in_date} &rarr; ${res.check_out_date}</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">${this.calculateNights(res.check_in_date, res.check_out_date)} nuitée(s)</div>
+          </td>
+          <td>
+            <div>${room ? `Chambre ${room.room_number}` : 'Non assignée'}</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">${roomType ? roomType.name : ''}</div>
+          </td>
+          <td>${res.guest_count} pers.</td>
+          <td><span class="status-pill status-${res.status}">${this.formatStatusFR(res.status)}</span></td>
+          <td><strong>${formatFCFA(total)}</strong></td>
+          <td class="text-right">
+            <div style="display: inline-flex; gap: 6px;">
+              ${res.status === 'confirmed' ? `
+                <button class="btn btn-sm btn-primary" onclick="app.checkInReservation(${res.reservation_id})">Arrivée</button>
+              ` : ''}
+              ${res.status === 'checked_in' ? `
+                <button class="btn btn-sm btn-outline" onclick="app.checkOutReservation(${res.reservation_id})">Départ</button>
+              ` : ''}
+              <button class="btn btn-sm btn-outline" onclick="app.openInvoiceForReservation(${res.reservation_id})" title="Voir le Folio">Facture</button>
+              ${res.status === 'confirmed' ? `
+                <button class="btn btn-sm btn-outline" style="color: #b91c1c;" title="Annuler le séjour" onclick="app.cancelReservation(${res.reservation_id})">&times;</button>
+              ` : ''}
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    renderGuests() {
+      this.renderGuestsList(this.state.clients);
+    }
+
+    renderGuestsList(clients) {
+      const grid = document.getElementById('guestsGrid');
+      grid.innerHTML = '';
+
+      if (clients.length === 0) {
+        grid.innerHTML = `<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: var(--text-muted);">Aucun client enregistré.</div>`;
+        return;
+      }
+
+      clients.forEach(c => {
+        const staysCount = this.state.reservations.filter(r => r.client_id === c.client_id).length;
+        const initials = `${c.first_name[0] || ''}${c.last_name[0] || ''}`.toUpperCase();
+
+        const card = document.createElement('div');
+        card.className = 'guest-card';
+        card.innerHTML = `
+          <div class="guest-card-header">
+            <div class="guest-avatar-large">${initials}</div>
+            <div>
+              <h3 class="guest-card-name">${c.first_name} ${c.last_name}</h3>
+              ${c.vip_tier ? `<span class="vip-badge">Statut ${c.vip_tier}</span>` : ''}
+            </div>
+          </div>
+          <div class="guest-contact-list">
+            <div class="guest-contact-item">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              <span>${c.phone}</span>
+            </div>
+            <div class="guest-contact-item">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              <span>${c.email}</span>
+            </div>
+            <div class="guest-contact-item">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              <span>${staysCount} Séjour${staysCount > 1 ? 's' : ''} au Wouri</span>
+            </div>
+          </div>
+          ${c.notes ? `<div class="guest-notes-box">"${c.notes}"</div>` : ''}
+          <div style="margin-top: 14px; display: flex; justify-content: flex-end;">
+            <button class="btn btn-sm btn-outline" onclick="app.openNewReservationForGuest(${c.client_id})">Nouvelle Réservation</button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    renderServices() {
+      const grid = document.getElementById('servicesGrid');
+      grid.innerHTML = '';
+
+      this.state.services.forEach(s => {
+        const card = document.createElement('div');
+        card.className = 'service-card';
+        card.innerHTML = `
+          <h3 class="service-title">${s.name}</h3>
+          <p class="service-desc">${s.description}</p>
+          <div class="service-meta-row">
+            <span class="service-price">${formatFCFA(s.price)}</span>
+            <span class="service-duration">${s.slot_duration_minutes} min • Capacité ${s.slot_capacity} pers.</span>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="app.openBookServiceModal(${s.service_id})">Commander pour un résident</button>
+        `;
+        grid.appendChild(card);
+      });
+
+      const tbody = document.getElementById('serviceBookingsTableBody');
+      tbody.innerHTML = '';
+      if (this.state.service_bookings.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 20px; color: var(--text-muted);">Aucune commande de service récente.</td></tr>`;
+      } else {
+        [...this.state.service_bookings].reverse().forEach(sb => {
+          const service = this.state.services.find(s => s.service_id === sb.service_id);
+          const res = this.state.reservations.find(r => r.reservation_id === sb.reservation_id);
+          const client = res ? this.getClient(res.client_id) : null;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>#CMD-${sb.service_booking_id}</td>
+            <td><strong>${service ? service.name : 'Prestation Spéciale'}</strong></td>
+            <td>${client ? `${client.first_name} ${client.last_name}` : 'Client'} (Séjour #${sb.reservation_id})</td>
+            <td>${sb.booking_date} à ${sb.start_time}</td>
+            <td>${sb.guests} pers.</td>
+            <td>${service ? formatFCFA(service.price * sb.guests) : '0 FCFA'}</td>
+            <td><span class="status-pill status-available">Confirmé</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    renderInvoices() {
+      let filtered = [...this.state.invoices];
+      if (this.invoiceFilterStatus !== 'all') {
+        filtered = filtered.filter(i => i.status === this.invoiceFilterStatus);
+      }
+
+      const tbody = document.getElementById('invoicesTableBody');
+      tbody.innerHTML = '';
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);">Aucune facture trouvée.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(inv => {
+        const res = this.state.reservations.find(r => r.reservation_id === inv.reservation_id);
+        const client = res ? this.getClient(res.client_id) : null;
+        const total = this.calculateInvoiceTotal(inv.invoice_id);
+        const payments = this.getInvoicePayments(inv.invoice_id);
+        const totalPaid = payments.reduce((acc, p) => acc + p.amount, 0);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>#FACT-${inv.invoice_id}</strong></td>
+          <td>#RES-${inv.reservation_id}</td>
+          <td>${client ? `${client.first_name} ${client.last_name}` : 'Résident'}</td>
+          <td>${inv.issue_date}</td>
+          <td><span class="status-pill status-${inv.status}">${inv.status === 'paid' ? 'Payée' : inv.status === 'issued' ? 'Émise' : 'Brouillon'}</span></td>
+          <td><strong>${formatFCFA(total)}</strong></td>
+          <td>${totalPaid >= total && total > 0 ? `<span style="color: var(--brand-secondary); font-weight: 600;">${formatFCFA(totalPaid)} (Soldé)</span>` : formatFCFA(totalPaid)}</td>
+          <td class="text-right">
+            <button class="btn btn-sm btn-outline" onclick="app.openInvoiceModal(${inv.invoice_id})">Voir le Folio</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    renderReviews() {
+      const reviews = this.state.reviews;
+      const count = reviews.length;
+      let avg = 5.0;
+      if (count > 0) {
+        const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+        avg = (sum / count).toFixed(1);
+      }
+
+      document.getElementById('avgRatingDisplay').textContent = avg;
+      document.getElementById('totalReviewsCount').textContent = `Sur ${count} avis clients vérifiés au Cameroun`;
+
+      const barsContainer = document.getElementById('ratingBars');
+      barsContainer.innerHTML = '';
+      for (let star = 5; star >= 1; star--) {
+        const matching = reviews.filter(r => r.rating === star).length;
+        const pct = count > 0 ? (matching / count) * 100 : 0;
+        const row = document.createElement('div');
+        row.className = 'rating-bar-row';
+        row.innerHTML = `
+          <span class="rating-bar-label">${star} Étoiles</span>
+          <div class="rating-bar-track">
+            <div class="rating-bar-fill" style="width: ${pct}%"></div>
+          </div>
+          <span style="font-size: 0.74rem; color: var(--text-muted); width: 24px;">${matching}</span>
+        `;
+        barsContainer.appendChild(row);
+      }
+
+      const list = document.getElementById('reviewsList');
+      list.innerHTML = '';
+      [...reviews].reverse().forEach(r => {
+        const starsText = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+        const card = document.createElement('div');
+        card.className = 'review-card';
+        card.innerHTML = `
+          <div class="review-stars">${starsText}</div>
+          <p class="review-text">"${r.comment}"</p>
+          <div class="review-meta">
+            <span class="review-author">${r.author_name}</span>
+            <span class="review-date">${r.review_date}</span>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    bindModals() {
+      document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) {
+            this.closeModal(overlay.id);
+          }
+        });
+      });
+    }
+
+    openModal(id) {
+      const modal = document.getElementById(id);
+      if (modal) modal.classList.add('open');
+    }
+
+    closeModal(id) {
+      const modal = document.getElementById(id);
+      if (modal) modal.classList.remove('open');
+    }
+
+    closeAllModals() {
+      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+    }
+
+    openNewReservationModal(presetGuestId = null, presetRoomId = null) {
+      const guestSelect = document.getElementById('resGuestSelect');
+      guestSelect.innerHTML = '';
+      this.state.clients.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.client_id;
+        opt.textContent = `${c.first_name} ${c.last_name} (${c.phone})`;
+        if (presetGuestId && c.client_id === presetGuestId) opt.selected = true;
+        guestSelect.appendChild(opt);
+      });
+
+      const checkInInput = document.getElementById('resCheckIn');
+      const checkOutInput = document.getElementById('resCheckOut');
+      checkInInput.value = getRelativeDate(0);
+      checkOutInput.value = getRelativeDate(2);
+
+      const roomSelect = document.getElementById('resRoomSelect');
+      roomSelect.innerHTML = '';
+      this.state.rooms.forEach(r => {
+        const type = this.getRoomType(r.room_type_id);
+        const opt = document.createElement('option');
+        opt.value = r.room_id;
+        opt.textContent = `Chambre ${r.room_number} - ${type ? type.name : ''} (${formatFCFA(r.base_price_per_night)}/nuit)`;
+        if (presetRoomId && r.room_id === presetRoomId) opt.selected = true;
+        roomSelect.appendChild(opt);
+      });
+
+      roomSelect.dispatchEvent(new Event('change'));
+      this.openModal('modalNewReservation');
+    }
+
+    quickBookRoom(roomId) {
+      this.openNewReservationModal(null, roomId);
+    }
+
+    openNewReservationForGuest(guestId) {
+      this.openNewReservationModal(guestId, null);
+    }
+
+    handleCreateReservation(event) {
+      event.preventDefault();
+
+      const clientId = parseInt(document.getElementById('resGuestSelect').value, 10);
+      const checkIn = document.getElementById('resCheckIn').value;
+      const checkOut = document.getElementById('resCheckOut').value;
+      const roomId = parseInt(document.getElementById('resRoomSelect').value, 10);
+      const guestCount = parseInt(document.getElementById('resGuestCount').value, 10);
+      const specialNotes = document.getElementById('resSpecialNotes').value;
+
+      if (!checkIn || !checkOut || checkIn >= checkOut) {
+        alert('La date de départ doit être strictement postérieure à la date d\'arrivée.');
+        return;
+      }
+
+      const room = this.state.rooms.find(r => r.room_id === roomId);
+      if (!room) return;
+
+      const newResId = (Math.max(0, ...this.state.reservations.map(r => r.reservation_id)) || 1000) + 1;
+
+      const newRes = {
+        reservation_id: newResId,
+        client_id: clientId,
+        check_in_date: checkIn,
+        check_out_date: checkOut,
+        guest_count: guestCount,
+        status: 'confirmed',
+        created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        cancelled_at: null,
+        special_requests: specialNotes
+      };
+      this.state.reservations.push(newRes);
+
+      this.state.reservation_rooms.push({
+        reservation_id: newResId,
+        room_id: roomId,
+        nightly_price: room.base_price_per_night
+      });
+
+      const newInvId = (Math.max(0, ...this.state.invoices.map(i => i.invoice_id)) || 9000) + 1;
+      const nights = this.calculateNights(checkIn, checkOut);
+      const roomType = this.getRoomType(room.room_type_id);
+
+      this.state.invoices.push({
+        invoice_id: newInvId,
+        reservation_id: newResId,
+        issue_date: getRelativeDate(0),
+        status: 'issued'
+      });
+
+      const nextLineId = (Math.max(0, ...this.state.invoice_lines.map(l => l.invoice_line_id)) || 0) + 1;
+      this.state.invoice_lines.push({
+        invoice_line_id: nextLineId,
+        invoice_id: newInvId,
+        line_type: 'room',
+        description: `Hébergement Chambre ${room.room_number} - ${roomType ? roomType.name : 'Séjour'} (${nights} nuitées)`,
+        service_booking_id: null,
+        quantity: nights,
+        unit_price: room.base_price_per_night,
+        tax_rate: 19.25
+      });
+
+      this.saveState();
+      this.closeModal('modalNewReservation');
+      this.renderAll();
+
+      const client = this.getClient(clientId);
+      this.showToast(`Réservation #RES-${newResId} confirmée pour ${client ? client.first_name + ' ' + client.last_name : 'le résident'} !`, 'success');
+    }
+
+    openNewGuestModal(prefillIntoRes = false) {
+      document.getElementById('formNewGuest').reset();
+      this.prefillIntoResAfterCreate = prefillIntoRes;
+      this.openModal('modalNewGuest');
+    }
+
+    handleCreateGuest(event) {
+      event.preventDefault();
+      const first = document.getElementById('guestFirstName').value.trim();
+      const last = document.getElementById('guestLastName').value.trim();
+      const email = document.getElementById('guestEmail').value.trim();
+      const phone = document.getElementById('guestPhone').value.trim();
+      const prefs = document.getElementById('guestPreferences').value.trim();
+
+      const newId = (Math.max(0, ...this.state.clients.map(c => c.client_id)) || 0) + 1;
+      const newClient = {
+        client_id: newId,
+        first_name: first,
+        last_name: last,
+        email: email,
+        phone: phone,
+        vip_tier: 'Standard',
+        notes: prefs
+      };
+
+      this.state.clients.push(newClient);
+      this.saveState();
+      this.closeModal('modalNewGuest');
+      this.renderAll();
+
+      this.showToast(`Nouveau client enregistré : ${first} ${last}.`, 'success');
+
+      if (this.prefillIntoResAfterCreate) {
+        this.openNewReservationModal(newId);
+      }
+    }
+
+    openRoomDetailModal(roomId) {
+      const room = this.state.rooms.find(r => r.room_id === roomId);
+      if (!room) return;
+
+      this.activeInspectingRoomId = roomId;
+      const roomType = this.getRoomType(room.room_type_id);
+      const roomStatus = this.getRoomStatus(room.room_status_id);
+      const amenities = this.getRoomAmenities(roomId);
+      const occupant = this.getRoomCurrentResident(roomId);
+
+      document.getElementById('roomDetailTitle').textContent = `Chambre ${room.room_number}`;
+      document.getElementById('roomDetailSubtitle').textContent = `${roomType ? roomType.name : ''} • Étage ${room.floor}`;
+      document.getElementById('roomDetailPrice').textContent = formatFCFA(room.base_price_per_night);
+      document.getElementById('roomDetailCapacity').textContent = `${room.max_capacity} Personnes max`;
+
+      const statusPill = document.getElementById('roomDetailStatusPill');
+      statusPill.textContent = roomStatus.name;
+      const sClass = roomStatus.name === 'Disponible' ? 'available' : roomStatus.name === 'Occupée' ? 'occupied' : roomStatus.name === 'Nettoyage' ? 'cleaning' : 'maintenance';
+      statusPill.className = `val status-pill status-${sClass}`;
+
+      const amenBox = document.getElementById('roomDetailAmenities');
+      amenBox.innerHTML = amenities.map(a => `<span class="amenity-badge">${a.name}</span>`).join('');
+
+      const occBlock = document.getElementById('roomDetailOccupantBlock');
+      if (occupant) {
+        occBlock.innerHTML = `
+          <div style="background: var(--bg-canvas); padding: 12px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+            <strong style="color: var(--brand-primary);">Occupant actuel :</strong>
+            <div>${occupant.first_name} ${occupant.last_name} (${occupant.phone})</div>
+            <div style="font-size: 0.74rem; color: var(--text-muted);">${occupant.notes || 'Aucune note particulière'}</div>
+          </div>
+        `;
+      } else {
+        occBlock.innerHTML = `<p style="font-size: 0.78rem; color: var(--text-muted);">Aucun client n'occupe cette chambre actuellement.</p>`;
+      }
+
+      this.openModal('modalRoomDetail');
+    }
+
+    updateRoomStatus(newStatusName) {
+      if (!this.activeInspectingRoomId) return;
+      const room = this.state.rooms.find(r => r.room_id === this.activeInspectingRoomId);
+      const statusMap = {
+        'Available': 'Disponible',
+        'Occupied': 'Occupée',
+        'Cleaning': 'Nettoyage',
+        'Maintenance': 'Maintenance'
+      };
+      const actualName = statusMap[newStatusName] || newStatusName;
+      const statusObj = this.state.room_statuses.find(s => s.name === actualName);
+      if (!room || !statusObj) return;
+
+      room.room_status_id = statusObj.room_status_id;
+      this.saveState();
+      this.renderAll();
+      this.openRoomDetailModal(room.room_id);
+      this.showToast(`Statut de la Chambre ${room.room_number} passé à : ${actualName}.`, 'info');
+    }
+
+    bookSpecificRoom() {
+      if (!this.activeInspectingRoomId) return;
+      const rId = this.activeInspectingRoomId;
+      this.closeModal('modalRoomDetail');
+      this.quickBookRoom(rId);
+    }
+
+    openBookServiceModal(presetServiceId = null) {
+      const sSelect = document.getElementById('serviceSelect');
+      sSelect.innerHTML = '';
+      this.state.services.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.service_id;
+        opt.textContent = `${s.name} (${formatFCFA(s.price)})`;
+        if (presetServiceId && s.service_id === presetServiceId) opt.selected = true;
+        sSelect.appendChild(opt);
+      });
+
+      const resSelect = document.getElementById('serviceReservationSelect');
+      resSelect.innerHTML = '';
+      const activeRes = this.state.reservations.filter(r => r.status === 'checked_in' || r.status === 'confirmed');
+
+      if (activeRes.length === 0) {
+        resSelect.innerHTML = `<option disabled selected>Aucun séjour en cours</option>`;
+      } else {
+        activeRes.forEach(r => {
+          const client = this.getClient(r.client_id);
+          const room = this.getReservationRoom(r.reservation_id);
+          const opt = document.createElement('option');
+          opt.value = r.reservation_id;
+          opt.textContent = `Séjour #RES-${r.reservation_id} • ${client ? client.first_name + ' ' + client.last_name : 'Client'} (${room ? 'Chambre ' + room.room_number : 'Non assignée'})`;
+          resSelect.appendChild(opt);
+        });
+      }
+
+      document.getElementById('serviceDate').value = getRelativeDate(0);
+      this.updateServicePricePreview();
+      this.openModal('modalBookService');
+    }
+
+    updateServicePricePreview() {
+      const sId = parseInt(document.getElementById('serviceSelect').value, 10);
+      const s = this.state.services.find(item => item.service_id === sId);
+      const previewEl = document.getElementById('servicePricePreview');
+      if (s && previewEl) {
+        previewEl.textContent = `${formatFCFA(s.price)} / pers.`;
+      }
+    }
+
+    handleCreateServiceBooking(event) {
+      event.preventDefault();
+      const serviceId = parseInt(document.getElementById('serviceSelect').value, 10);
+      const resId = parseInt(document.getElementById('serviceReservationSelect').value, 10);
+      const dateVal = document.getElementById('serviceDate').value;
+      const timeVal = document.getElementById('serviceTime').value;
+      const guests = parseInt(document.getElementById('serviceGuests').value, 10);
+
+      const service = this.state.services.find(s => s.service_id === serviceId);
+      if (!service || isNaN(resId)) {
+        alert('Veuillez sélectionner un séjour actif et une prestation.');
+        return;
+      }
+
+      const newBookingId = (Math.max(0, ...this.state.service_bookings.map(b => b.service_booking_id)) || 500) + 1;
+      const newBooking = {
+        service_booking_id: newBookingId,
+        reservation_id: resId,
+        service_id: serviceId,
+        booking_date: dateVal,
+        start_time: timeVal,
+        guests: guests
+      };
+
+      this.state.service_bookings.push(newBooking);
+
+      let invoice = this.state.invoices.find(i => i.reservation_id === resId && i.status !== 'paid');
+      if (!invoice) {
+        const newInvId = (Math.max(0, ...this.state.invoices.map(i => i.invoice_id)) || 9000) + 1;
+        invoice = {
+          invoice_id: newInvId,
+          reservation_id: resId,
+          issue_date: dateVal,
+          status: 'issued'
+        };
+        this.state.invoices.push(invoice);
+      }
+
+      const nextLineId = (Math.max(0, ...this.state.invoice_lines.map(l => l.invoice_line_id)) || 0) + 1;
+      this.state.invoice_lines.push({
+        invoice_line_id: nextLineId,
+        invoice_id: invoice.invoice_id,
+        line_type: 'service',
+        description: `${service.name} (${guests} personne${guests > 1 ? 's' : ''})`,
+        service_booking_id: newBookingId,
+        quantity: guests,
+        unit_price: service.price,
+        tax_rate: 19.25
+      });
+
+      this.saveState();
+      this.closeModal('modalBookService');
+      this.renderAll();
+      this.showToast(`${service.name} ajouté à la facture #FACT-${invoice.invoice_id}.`, 'success');
+    }
+
+    openInvoiceForReservation(reservationId) {
+      let inv = this.state.invoices.find(i => i.reservation_id === reservationId);
+      if (!inv) {
+        const newInvId = (Math.max(0, ...this.state.invoices.map(i => i.invoice_id)) || 9000) + 1;
+        inv = {
+          invoice_id: newInvId,
+          reservation_id: reservationId,
+          issue_date: getRelativeDate(0),
+          status: 'issued'
+        };
+        this.state.invoices.push(inv);
+        this.saveState();
+      }
+      this.openInvoiceModal(inv.invoice_id);
+    }
+
+    openInvoiceModal(invoiceId) {
+      const inv = this.state.invoices.find(i => i.invoice_id === invoiceId);
+      if (!inv) return;
+
+      const res = this.state.reservations.find(r => r.reservation_id === inv.reservation_id);
+      const client = res ? this.getClient(res.client_id) : null;
+      const room = res ? this.getReservationRoom(res.reservation_id) : null;
+      const lines = this.state.invoice_lines.filter(l => l.invoice_id === invoiceId);
+      const payments = this.getInvoicePayments(invoiceId);
+
+      const subtotal = lines.reduce((acc, l) => acc + (l.quantity * l.unit_price), 0);
+      const tax = lines.reduce((acc, l) => acc + (l.quantity * l.unit_price * (l.tax_rate / 100)), 0);
+      const grandTotal = subtotal + tax;
+      const totalPaid = payments.reduce((acc, p) => acc + p.amount, 0);
+      const balanceDue = Math.max(0, grandTotal - totalPaid);
+
+      const container = document.getElementById('invoicePrintArea');
+      container.innerHTML = `
+        <div class="invoice-header-box">
+          <div>
+            <div class="folio-brand-title">HÔTEL LE WOURI PRESTIGE & SUITES</div>
+            <div class="folio-brand-meta">
+              Boulevard de la Liberté, Bonanjo - B.P. 1248 Douala, Cameroun<br>
+              Tél: +237 233 42 10 50 / +237 699 00 00 12 • Email: reception@hotel-wouri.cm<br>
+              N.I.F : M051812749210B • R.C.C.M : RC/DLA/2018/B/452
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-main);">NOTE D'HÔTEL / FOLIO</div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary);">Facture N° : FACT-${inv.invoice_id}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Date d'émission : ${inv.issue_date}</div>
+            <div style="margin-top: 4px;"><span class="status-pill status-${inv.status}">${inv.status === 'paid' ? 'Payée' : inv.status === 'issued' ? 'Émise' : 'Brouillon'}</span></div>
+          </div>
+        </div>
+
+        <div class="folio-details-grid">
+          <div>
+            <div class="folio-section-title">Client Facturé</div>
+            <strong>${client ? `${client.first_name} ${client.last_name}` : 'Résident'}</strong>
+            <div style="color: var(--text-secondary); font-size: 0.8rem;">
+              Téléphone : ${client ? client.phone : ''}<br>
+              Email : ${client ? client.email : ''}
+            </div>
+          </div>
+          <div>
+            <div class="folio-section-title">Détails du Séjour</div>
+            <div style="font-size: 0.82rem; color: var(--text-secondary);">
+              <strong>Dossier Réservation :</strong> #RES-${res ? res.reservation_id : 'N/A'}<br>
+              <strong>Dates du séjour :</strong> ${res ? `du ${res.check_in_date} au ${res.check_out_date}` : 'N/A'}<br>
+              <strong>Attribution :</strong> ${room ? `Chambre ${room.room_number}` : 'Non attribuée'}
+            </div>
+          </div>
+        </div>
+
+        <table class="folio-lines-table">
+          <thead>
+            <tr>
+              <th>Désignation des Prestations</th>
+              <th style="text-align: center;">Qté</th>
+              <th style="text-align: right;">Prix Unitaire</th>
+              <th style="text-align: right;">TVA (19.25%)</th>
+              <th style="text-align: right;">Total HT</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${lines.length === 0 ? `
+              <tr><td colspan="5" style="text-align:center; padding: 16px; color: var(--text-muted);">Aucune ligne enregistrée sur cette facture.</td></tr>
+            ` : lines.map(l => `
+              <tr>
+                <td>${l.description}</td>
+                <td style="text-align: center;">${l.quantity}</td>
+                <td style="text-align: right;">${formatFCFA(l.unit_price)}</td>
+                <td style="text-align: right;">${l.tax_rate}%</td>
+                <td style="text-align: right; font-weight: 600;">${formatFCFA(l.quantity * l.unit_price)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+          <div style="font-size: 0.76rem; color: var(--text-muted); max-width: 340px;">
+            Hôtel Le Wouri Prestige vous remercie de votre confiance. Les paiements électroniques par <strong>Orange Money</strong> (#150*...), <strong>MTN Mobile Money</strong> (*126#) et Cartes Bancaires sont acceptés à la réception.
+          </div>
+          <div class="folio-totals-box">
+            <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
+              <span>Total Hors Taxes :</span> <strong>${formatFCFA(subtotal)}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
+              <span>TVA Cameroun (19.25%) :</span> <strong>${formatFCFA(tax)}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:1.05rem; font-weight:700; color:var(--brand-primary); border-top:1px dashed #d4ccbf; padding-top:6px; margin-top:4px;">
+              <span>Total TTC :</span> <span>${formatFCFA(grandTotal)}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:var(--brand-secondary); margin-top:2px;">
+              <span>Acomptes / Règlements :</span> <strong>-${formatFCFA(totalPaid)}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.95rem; font-weight:700; color: ${balanceDue > 0 ? '#b91c1c' : '#2d6a4f'}; border-top:1px solid #d4ccbf; padding-top:4px;">
+              <span>Net à payer :</span> <span>${formatFCFA(balanceDue)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const footer = document.getElementById('invoiceModalFooter');
+      footer.innerHTML = `
+        <button type="button" class="btn btn-outline" onclick="app.closeModal('modalInvoice')">Fermer</button>
+        ${balanceDue > 0 ? `
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-primary" style="background:#e05b00;" onclick="app.recordPaymentPrompt(${inv.invoice_id}, ${balanceDue}, 'Orange Money')">
+              Régler Orange Money
+            </button>
+            <button type="button" class="btn btn-primary" style="background:#fdb813; color:#000;" onclick="app.recordPaymentPrompt(${inv.invoice_id}, ${balanceDue}, 'MTN MoMo')">
+              Régler MTN MoMo
+            </button>
+            <button type="button" class="btn btn-primary" onclick="app.recordPaymentPrompt(${inv.invoice_id}, ${balanceDue}, 'Espèces')">
+              Encaisser Espèces
+            </button>
+          </div>
+        ` : `
+          <span style="color: var(--brand-secondary); font-size: 0.85rem; font-weight: 600;">✓ Facture Intégralement Soldée</span>
+        `}
+      `;
+
+      this.openModal('modalInvoice');
+    }
+
+    recordPaymentPrompt(invoiceId, amount, defaultMethod) {
+      const ref = prompt(`Saisir la référence ou le numéro de transaction pour le paiement (${defaultMethod}) :`, `${defaultMethod} - Réf: CM-${Date.now().toString().slice(-6)}`);
+      if (ref === null) return;
+
+      const newPayId = (Math.max(0, ...this.state.payments.map(p => p.payment_id)) || 7000) + 1;
+      this.state.payments.push({
+        payment_id: newPayId,
+        invoice_id: invoiceId,
+        payment_date: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        amount: amount,
+        method: ref
+      });
+
+      const inv = this.state.invoices.find(i => i.invoice_id === invoiceId);
+      if (inv) inv.status = 'paid';
+
+      this.saveState();
+      this.renderAll();
+      this.openInvoiceModal(invoiceId);
+      this.showToast(`Règlement de ${formatFCFA(amount)} enregistré avec succès !`, 'success');
+    }
+
+    openAddReviewModal() {
+      const select = document.getElementById('reviewReservationSelect');
+      select.innerHTML = '';
+
+      this.state.reservations.forEach(r => {
+        const client = this.getClient(r.client_id);
+        const opt = document.createElement('option');
+        opt.value = r.reservation_id;
+        opt.textContent = `Séjour #RES-${r.reservation_id} • ${client ? `${client.first_name} ${client.last_name}` : 'Client'}`;
+        select.appendChild(opt);
+      });
+
+      document.getElementById('formAddReview').reset();
+      document.getElementById('reviewRatingVal').value = 5;
+      document.querySelectorAll('.star-pick').forEach(s => s.classList.add('active'));
+
+      this.openModal('modalAddReview');
+    }
+
+    handleCreateReview(event) {
+      event.preventDefault();
+      const resId = parseInt(document.getElementById('reviewReservationSelect').value, 10);
+      const rating = parseInt(document.getElementById('reviewRatingVal').value, 10);
+      const comment = document.getElementById('reviewComment').value.trim();
+
+      const res = this.state.reservations.find(r => r.reservation_id === resId);
+      const client = res ? this.getClient(res.client_id) : null;
+      const authorName = client ? `${client.first_name} ${client.last_name}` : 'Client Résident';
+
+      const newRevId = (Math.max(0, ...this.state.reviews.map(r => r.review_id)) || 800) + 1;
+      this.state.reviews.push({
+        review_id: newRevId,
+        reservation_id: resId,
+        rating: rating,
+        comment: comment,
+        review_date: getRelativeDate(0),
+        author_name: authorName
+      });
+
+      this.saveState();
+      this.closeModal('modalAddReview');
+      this.renderAll();
+      this.showToast('Témoignage client consigné dans le Livre d\'Or.', 'success');
+    }
+
+    checkInReservation(reservationId) {
+      const res = this.state.reservations.find(r => r.reservation_id === reservationId);
+      if (!res) return;
+
+      res.status = 'checked_in';
+      const rr = this.state.reservation_rooms.find(x => x.reservation_id === reservationId);
+      if (rr) {
+        const room = this.state.rooms.find(r => r.room_id === rr.room_id);
+        if (room) room.room_status_id = 2; 
+      }
+
+      this.saveState();
+      this.renderAll();
+      const client = this.getClient(res.client_id);
+      this.showToast(`Arrivée enregistrée pour ${client ? client.first_name + ' ' + client.last_name : 'le résident'} ! Clé magnétique remise.`, 'success');
+    }
+
+    checkOutReservation(reservationId) {
+      const res = this.state.reservations.find(r => r.reservation_id === reservationId);
+      if (!res) return;
+
+      res.status = 'checked_out';
+      const rr = this.state.reservation_rooms.find(x => x.reservation_id === reservationId);
+      if (rr) {
+        const room = this.state.rooms.find(r => r.room_id === rr.room_id);
+        if (room) room.room_status_id = 3; 
+      }
+
+      this.saveState();
+      this.renderAll();
+      const client = this.getClient(res.client_id);
+      this.showToast(`Départ enregistré pour ${client ? client.first_name : 'le résident'}. Chambre transmise au service d'étages.`, 'info');
+    }
+
+    cancelReservation(reservationId) {
+      if (!confirm(`Confirmez-vous l'annulation de la réservation #RES-${reservationId} ?`)) return;
+      const res = this.state.reservations.find(r => r.reservation_id === reservationId);
+      if (!res) return;
+
+      res.status = 'cancelled';
+      res.cancelled_at = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+      this.saveState();
+      this.renderAll();
+      this.showToast(`Réservation #RES-${reservationId} annulée.`, 'info');
+    }
+
+    showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          ${type === 'success' ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>' : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'}
+        </svg>
+        <span>${message}</span>
+      `;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    formatStatusFR(status) {
+      const map = {
+        'confirmed': 'Confirmée',
+        'checked_in': 'En séjour',
+        'checked_out': 'Séjour clôturé',
+        'cancelled': 'Annulée'
+      };
+      return map[status] || status;
+    }
+
+    getClient(clientId) {
+      return this.state.clients.find(c => c.client_id === clientId);
+    }
+
+    getRoomType(typeId) {
+      return this.state.room_types.find(t => t.room_type_id === typeId);
+    }
+
+    getRoomStatus(statusId) {
+      return this.state.room_statuses.find(s => s.room_status_id === statusId) || { name: 'Inconnu' };
+    }
+
+    getRoomAmenities(roomId) {
+      const linkIds = this.state.room_amenities.filter(ra => ra.room_id === roomId).map(ra => ra.amenity_id);
+      return this.state.amenities.filter(a => linkIds.includes(a.amenity_id));
+    }
+
+    getReservationRoom(reservationId) {
+      const rr = this.state.reservation_rooms.find(x => x.reservation_id === reservationId);
+      if (!rr) return null;
+      return this.state.rooms.find(r => r.room_id === rr.room_id);
+    }
+
+    getRoomCurrentResident(roomId) {
+      const rr = this.state.reservation_rooms.find(x => x.room_id === roomId);
+      if (!rr) return null;
+      const res = this.state.reservations.find(r => r.reservation_id === rr.reservation_id && r.status === 'checked_in');
+      if (!res) return null;
+      return this.getClient(res.client_id);
+    }
+
+    getInvoicePayments(invoiceId) {
+      return this.state.payments.filter(p => p.invoice_id === invoiceId);
+    }
+
+    calculateNights(d1, d2) {
+      const diff = new Date(d2) - new Date(d1);
+      return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+    }
+
+    calculateReservationTotal(reservationId) {
+      const inv = this.state.invoices.find(i => i.reservation_id === reservationId);
+      if (inv) {
+        return this.calculateInvoiceTotal(inv.invoice_id);
+      }
+      const res = this.state.reservations.find(r => r.reservation_id === reservationId);
+      const rr = this.state.reservation_rooms.find(r => r.reservation_id === reservationId);
+      if (!res || !rr) return 0;
+      const nights = this.calculateNights(res.check_in_date, res.check_out_date);
+      return Math.round(nights * rr.nightly_price * 1.1925);
+    }
+
+    calculateInvoiceTotal(invoiceId) {
+      const lines = this.state.invoice_lines.filter(l => l.invoice_id === invoiceId);
+      return lines.reduce((acc, l) => {
+        const lineVal = l.quantity * l.unit_price;
+        const taxVal = lineVal * (l.tax_rate / 100);
+        return acc + lineVal + taxVal;
+      }, 0);
+    }
+  }
+
+  window.app = new HotelApp();
 })();
